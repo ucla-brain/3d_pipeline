@@ -9,12 +9,12 @@ From: python:3
     git clone https://github.com/lhgarciaa/3d_pipeline_testing.git
     mv 3d_pipeline_testing/* /code/
     rm -r 3d_pipeline_testing
-    chmod 775 /code/3d_downsample.py
+    chmod 775 /code/3d_registration.py
     pip3 install -r /code/requirements.txt
     apt clean
 
 %runscript
-    /code/3d_downsample.py
+    /code/3d_registration.py
 
 %test
     found=$(pip list | grep h5py | wc -l)
@@ -29,4 +29,4 @@ From: python:3
     Version v0.0.0
 
 %help
-    This container is used to run the downsampling 3D step
+    This container is used to run the registration 3D step
