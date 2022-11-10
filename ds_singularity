@@ -1,0 +1,32 @@
+Bootstrap: docker
+From: python:3
+
+%setup
+    mkdir ${SINGULARITY_ROOTFS}/code
+
+%post
+    apt update
+    git clone https://github.com/lhgarciaa/3d_pipeline_testing.git
+    mv 3d_pipeline_testing/* /code/
+    rm -r 3d_pipeline_testing
+    chmod 775 /code/3d_downsample.py
+    pip3 install -r /code/requirements.txt
+    apt clean
+
+%runscript
+    /code/3d_downsample.py
+
+%test
+    found=$(pip list | grep h5py | wc -l)
+    if [ $found -eq 1 ]; then
+        echo "All good!"
+    else
+        echo "Not good!"
+    fi
+
+%labels
+    Author lgar
+    Version v0.0.0
+
+%help
+    This container is used to run the downsizing 3d step
