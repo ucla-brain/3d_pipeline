@@ -7,8 +7,11 @@ From: python:3
 %post
     apt update
     git clone https://github.com/lhgarciaa/3d_pipeline_testing.git
+    git clone https://github.com/twardlab/emlddmm.git
     mv 3d_pipeline_testing/* /code/
+    mv emlddmm/emlddmm.py /code/
     rm -r 3d_pipeline_testing
+    rm -r emlddmm
     chmod 775 /code/3d_registration.py
     pip3 install -r /code/requirements.txt
     apt clean

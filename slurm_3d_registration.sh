@@ -15,7 +15,7 @@ fi
 
 module load singularity
 
-# Set singularity alias for compact command later
+# Set singularity alias
 shopt -s expand_aliases
 alias 3dRegistration='singularity exec -B /panfs 3d_registration.sif /code/3d_registration.py'
 
@@ -27,6 +27,6 @@ atlas=$5
 
 # Start registration
 date
-echo "Running '3dRegistration $file -c $channel -t $type -res $resolution'"
+echo "Running '3dRegistration $target_name -c -od $output_dir -of $output_file -cf $config_file -a $atlas'"
 3dRegistration $target_name -c -od $output_dir -of $output_file -cf $config_file -a $atlas
 echo "done..."
