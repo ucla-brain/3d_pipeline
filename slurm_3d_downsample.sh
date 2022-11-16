@@ -15,7 +15,7 @@ fi
 
 module load singularity
 
-# Set singularity alias for compact command later
+# Set singularity alias
 shopt -s expand_aliases
 alias 3dDownsample='singularity exec -B /panfs 3d_downsampling.sif /code/3d_downsample.py'
 

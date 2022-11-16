@@ -1,4 +1,6 @@
 numpy
 matplotlib
+nibabel
 h5py
 tifffile
+torch

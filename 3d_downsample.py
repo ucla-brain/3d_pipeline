@@ -20,10 +20,10 @@ import argparse
 # blocksize and chunksize for looking for areas with no data and loading quickly
 BLOCKSIZE = 64 #
 CHUNKSIZE = 32 #
-# TEMP_OUTDIR = '/home/dtward/bmaproot/nafs/dtward/dong/donglab_resample_lightsheet_good_2022_09_06_tmp'
+# TODO: find way to specifiy this 
 TEMP_OUTDIR = '/panfs/dong/Luis/testing/3d_pipe_test/temp_folder'
 
-def main(input_path, image_type, output_filename, dI, res, channel):
+def downsample(input_path, image_type, output_filename, dI, res, channel):
     dataset_string = f'DataSet/ResolutionLevel 0/TimePoint 0/Channel {channel}/Data'  # not used for Tifs
     power = np.ones(1, dtype=np.float32) * 0.125
 
@@ -233,5 +233,5 @@ if __name__ == '__main__':
     res = float(args.resolution)
     channel = args.channel
 
-    main(input_path=input_path, image_type=image_type, output_filename=output_filename,
-         dI=dI, res=res, channel=channel)
+    downsample(input_path=input_path, image_type=image_type, output_filename=output_filename,
+               dI=dI, res=res, channel=channel)
