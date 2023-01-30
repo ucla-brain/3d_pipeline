@@ -4,3 +4,6 @@ nibabel
 h5py
 tifffile
 torch
+requests
+scikit-image
+pandas
