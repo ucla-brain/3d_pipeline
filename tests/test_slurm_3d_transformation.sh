@@ -8,4 +8,5 @@ atlas=/path/to/file
 output_path=/path/to/directory
 output_file=/path/to/file
 
+cd ..
 sbatch slurm_3d_transformation.sh $image_name $transformation_name $output_path $output_file
