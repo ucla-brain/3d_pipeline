@@ -20,7 +20,7 @@ check_success "Unable to load Singularity using 'module load singularity'"
 
 # Check if specific container was specified
 if [ -z "$container" ]; then
-    echo "No container specified, removing and rebuilding all containers"
+    echo "No container specified (downsample, registration, transformation), removing and rebuilding all containers"
     echo "Continue (y/n)? "
     read answer
     if [ $answer != 'y' ]; then
