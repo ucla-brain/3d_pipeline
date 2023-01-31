@@ -35,7 +35,7 @@ echo "Specified $container container(s)"
 # Build if all or downsample specified
 if [ "$container" = "all" ] || [ "$container" = "downsample" ]; then
     echo "Building downsample container"
-    singularity build --remote 3d_downsampling.sif ds_singularity
+    singularity build --remote 3d_downsampling.sif singularity_ds
     check_success "Downsampling build unsuccessful"
     processed='true'
 fi
@@ -43,7 +43,7 @@ fi
 # Build if all or registration specified
 if [ "$container" = "all" ] || [ "$container" = "registration" ]; then
     echo "Building registration container"
-    singularity build --remote 3d_registration.sif reg_singularity
+    singularity build --remote 3d_registration.sif singularity_reg
     check_success "Registration build unsuccessful"
     processed='true'
 fi
@@ -51,7 +51,7 @@ fi
 # Build if all or transformation specified
 if [ "$container" = "all" ] || [ "$container" = "transformation" ]; then
     echo "Building transformation container"
-    singularity build --remote 3d_transformation.sif reg_singularity
+    singularity build --remote 3d_transformation.sif singularity_trans
     check_success "transformation build unsuccessful"
     processed='true'
 fi
