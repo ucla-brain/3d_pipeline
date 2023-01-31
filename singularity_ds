@@ -6,18 +6,15 @@ From: python:3
 
 %post
     apt update
-    git clone https://github.com/lhgarciaa/3d_pipeline_testing.git
-    git clone https://github.com/twardlab/emlddmm.git
-    mv 3d_pipeline_testing/* /code/
-    mv emlddmm/emlddmm.py /code/
-    rm -r 3d_pipeline_testing
-    rm -r emlddmm
-    chmod 775 /code/registration.py
+    git clone https://github.com/ucla-brain/3d_pipeline.git
+    mv 3d_pipeline/* /code/
+    rm -r 3d_pipeline
+    chmod 700 /code/downsample.py
     pip3 install -r /code/requirements.txt
     apt clean
 
 %runscript
-    /code/registration.py
+    /code/downsample.py
 
 %test
     found=$(pip list | grep h5py | wc -l)
@@ -32,4 +29,4 @@ From: python:3
     Version v0.0.0
 
 %help
-    This container is used to run the registration 3D step
+    This container is used to run the downsampling 3D step
