@@ -9,12 +9,12 @@ From: python:3
     git clone https://github.com/lhgarciaa/3d_pipeline_testing.git
     mv 3d_pipeline_testing/* /code/
     rm -r 3d_pipeline_testing
-    chmod 775 /code/3d_downsample.py
+    chmod 700 /code/downsample.py
     pip3 install -r /code/requirements.txt
     apt clean
 
 %runscript
-    /code/3d_downsample.py
+    /code/downsample.py
 
 %test
     found=$(pip list | grep h5py | wc -l)
