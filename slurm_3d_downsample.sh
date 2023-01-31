@@ -20,13 +20,13 @@ shopt -s expand_aliases
 alias 3dDownsample='singularity exec -B /panfs 3d_downsampling.sif /code/downsample.py'
 
 file=$1
-type=$2
+img_type=$2
 outdir=$3
 resolution=$4
 channel=$5
 
 # Start downsample
 date
-echo "Running '3dDownsample $file $type $outdir -res $resolution -c $channel'"
-3dDownsample $file $type $outdir -res $resolution -c $channel
+echo "Running '3dDownsample $file $img_type $outdir -res $resolution -c $channel'"
+3dDownsample $file $img_type $outdir -res $resolution -c $channel
 echo "done..."
