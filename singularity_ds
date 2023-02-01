@@ -10,7 +10,7 @@ From: python:3
     mv 3d_pipeline/* /code/
     rm -r 3d_pipeline
     chmod 700 /code/downsample.py
-    pip3 install -r /code/requirements.txt
+    pip3 install -r /code/requirements-min.txt
     apt clean
 
 %runscript
