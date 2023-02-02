@@ -9,7 +9,7 @@ From: python:3
     git clone https://github.com/ucla-brain/3d_pipeline.git
     mv 3d_pipeline/* /code/
     rm -r 3d_pipeline
-    chmod 700 /code/downsample.py
+    chmod 775 /code/downsample.py
     pip3 install -r /code/requirements-min.txt
     apt clean
 
