@@ -7,3 +7,4 @@ torch
 requests
 scikit-image
 pandas
+trimesh

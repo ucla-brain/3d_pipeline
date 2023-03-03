@@ -14,6 +14,7 @@ import csv
 import pandas as pd
 from skimage.measure import marching_cubes
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection
+import trimesh
 
 # for now add emlddmm library for registration
 # sys.path.append('/home/dtward/data/csh_data/emlddmm')
@@ -572,6 +573,18 @@ for l in labels:
     structure_fname = os.path.join(output_prefix, f'structure_{l:012d}_surface_{clean_id}.npz')
     np.savez(structure_fname, verts=verts,faces=faces,normals=normals,values=values,readme=readme)
     
+    # Export OBJ Wavefront format
+    obj_fname = os.path.join(output_prefix, f'structure_{l:012d}_surface_{clean_id}.obj')
+
+    # Create a 3D mesh using Poly3DCollection
+    vertices = np.array(vertices)
+    faces = np.array(faces)
+
+    # Export the mesh to an OBJ file using trimesh
+    trimesh_obj = trimesh.Trimesh(vertices=vertices, faces=faces)
+    trimesh_obj.export(obj_fname)
+
+
     surf = Poly3DCollection(verts[faces])
     n = compute_face_normals(verts,faces,normalize=True)
     surf.set_color(n*0.5+0.5)
