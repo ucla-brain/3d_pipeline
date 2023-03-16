@@ -1,6 +1,6 @@
 #! /bin/bash
 
-target_name$1
+target_name=$1
 output_dir=$2
 seg_name=$3
 output_file=$4
