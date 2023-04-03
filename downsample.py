@@ -92,6 +92,10 @@ def downsample(input_path=None, image_type=None, output_filename=None,
     down = np.floor(res/dI).astype(int)
 
     nI = np.array(data.shape)
+    if not(image_type == 'ims'):
+        # if we couldn't calculate xI above, we'll use these defaults
+        xI = [np.arange(n)*d - (n-1)/2.0*d for n,d in zip(nI,dI)]
+
     xI = [np.arange(n)*d - (n-1)/2.0*d for n,d in zip(nI,dI)]
     nIreal = np.array([len(x) for x in xI])
 
