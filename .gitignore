@@ -5,3 +5,6 @@
 *.sif
 emlddmm.py
 testing/
+logs/
+*.log
+results/
