@@ -66,7 +66,7 @@ else:
     W = np.ones_like(J[0])
     # or actually
     W = (J[0]>0).astype(float)
-    
+
 W = (J[0]>0).astype(float)
 
 emlddmm.draw(W[None])
@@ -84,8 +84,8 @@ for atlas_name in atlas_names:
     I_ = I_.astype(np.float32)
     I_ /= np.mean(np.abs(I_))
     I.append(I_)
-    
-I = np.concatenate(I)    
+
+I = np.concatenate(I)
 dI = [x[1] - x[0] for x in xI]
 XI = np.meshgrid(*xI,indexing='ij')
 
@@ -156,7 +156,7 @@ fig.canvas.draw()
 
 ### Registration
 
-if A0 == None:                   
+if A0 == None:
     # initial affine
     A0 = np.eye(4)
     # make sure to keep sign of Jacobian
@@ -167,7 +167,7 @@ if A0 == None:
     A0 = np.array([[0.0,0.0,-1.0,0.0],[0.0,1.0,0.0,0.0],[1.0,0.0,0.0,0.0],[0.0,0.0,0.0,1.0]])@A0
     # flip x1,x2
     #A0 = np.array([[-1.0,0.0,0.0,0.0],[0.0,0.0,1.0,0.0],[0.0,1.0,0.0,0.0],[0.0,0.0,0.0,1.0]])@A0
-    # flip 
+    # flip
     #A0 = np.diag((1.0,-1.0,-1.0,1.0))@A0
     # shift
     #A0[0,-1] = +3500 # left right, positive will cut off the missing hemisphere as appropriate
@@ -326,8 +326,8 @@ fig = plt.figure(figsize=(7,7))
 n = 4
 slices = np.round(np.linspace(0,I.shape[1],n+2)[1:-1]).astype(int)
 for i in range(n):
-    ax = fig.add_subplot(3,n,i+1)    
-    
+    ax = fig.add_subplot(3,n,i+1)
+
     # get slices
     RGB_ = RGB[:,slices[i]].transpose(1,2,0)
     S_ = S[0,slices[i]]
@@ -341,17 +341,17 @@ for i in range(n):
     border |= S_ != np.roll(S_,shift=-1,axis=0)
     border |= S_ != np.roll(S_,shift=1,axis=1)
     border |= S_ != np.roll(S_,shift=-1,axis=1)
-    
+
     # draw
     ax.imshow(alpha*border[...,None]*RGB_ + ((1-alpha*border)*Jt_)[...,None])
     if i>0:
         ax.set_xticks([])
         ax.set_yticks([])
-    
+
 slices = np.round(np.linspace(0,I.shape[2],n+2)[1:-1]).astype(int)
 for i in range(n):
-    ax = fig.add_subplot(3,n,i+1 + n)    
-    
+    ax = fig.add_subplot(3,n,i+1 + n)
+
     # get slices
     RGB_ = RGB[:,:,slices[i]].transpose(1,2,0)
     S_ = S[0,:,slices[i]]
@@ -365,7 +365,7 @@ for i in range(n):
     border |= S_ != np.roll(S_,shift=-1,axis=0)
     border |= S_ != np.roll(S_,shift=1,axis=1)
     border |= S_ != np.roll(S_,shift=-1,axis=1)
-    
+
     # draw
     ax.imshow(alpha*border[...,None]*RGB_ + ((1-alpha*border)*Jt_)[...,None])
     if i>0:
@@ -374,8 +374,8 @@ for i in range(n):
 
 slices = np.round(np.linspace(0,I.shape[3],n+2)[1:-1]).astype(int)
 for i in range(n):
-    ax = fig.add_subplot(3,n,i+1 + n+n)    
-    
+    ax = fig.add_subplot(3,n,i+1 + n+n)
+
     # get slices
     RGB_ = RGB[:,:,:,slices[i]].transpose(1,2,0)
     S_ = S[0,:,:,slices[i]]
@@ -389,9 +389,9 @@ for i in range(n):
     border |= S_ != np.roll(S_,shift=-1,axis=0)
     border |= S_ != np.roll(S_,shift=1,axis=1)
     border |= S_ != np.roll(S_,shift=-1,axis=1)
-    
+
     # draw
-    ax.imshow(alpha*border[...,None]*RGB_ + ((1-alpha*border)*Jt_)[...,None])    
+    ax.imshow(alpha*border[...,None]*RGB_ + ((1-alpha*border)*Jt_)[...,None])
     if i>0:
         ax.set_xticks([])
         ax.set_yticks([])
@@ -403,8 +403,8 @@ fig.savefig(os.path.join(output_prefix, 'atlas_space.jpg'), **figopts)
 fig = plt.figure(figsize=(8,5))
 slices = np.round(np.linspace(0,J.shape[1],n+2)[1:-1]).astype(int)
 for i in range(n):
-    ax = fig.add_subplot(3,n,i+1)    
-    
+    ax = fig.add_subplot(3,n,i+1)
+
     # get slices
     RGB_ = RGBt[:,slices[i]].transpose(1,2,0)
     S_ = St[0,slices[i]]
@@ -418,17 +418,17 @@ for i in range(n):
     border |= S_ != np.roll(S_,shift=-1,axis=0)
     border |= S_ != np.roll(S_,shift=1,axis=1)
     border |= S_ != np.roll(S_,shift=-1,axis=1)
-    
+
     # draw
     ax.imshow(alpha*border[...,None]*RGB_ + ((1-alpha*border)*Jt_)[...,None])
     if i>0:
         ax.set_xticks([])
         ax.set_yticks([])
-    
+
 slices = np.round(np.linspace(0,J.shape[2],n+2)[1:-1]).astype(int)
 for i in range(n):
-    ax = fig.add_subplot(3,n,i+1 + n)    
-    
+    ax = fig.add_subplot(3,n,i+1 + n)
+
     # get slices
     RGB_ = RGBt[:,:,slices[i]].transpose(1,2,0)
     S_ = St[0,:,slices[i]]
@@ -442,7 +442,7 @@ for i in range(n):
     border |= S_ != np.roll(S_,shift=-1,axis=0)
     border |= S_ != np.roll(S_,shift=1,axis=1)
     border |= S_ != np.roll(S_,shift=-1,axis=1)
-    
+
     # draw
     ax.imshow(alpha*border[...,None]*RGB_ + ((1-alpha*border)*Jt_)[...,None])
     if i>0:
@@ -451,8 +451,8 @@ for i in range(n):
 
 slices = np.round(np.linspace(0,J.shape[3],n+2)[1:-1]).astype(int)
 for i in range(n):
-    ax = fig.add_subplot(3,n,i+1 + n+n)    
-    
+    ax = fig.add_subplot(3,n,i+1 + n+n)
+
     # get slices
     RGB_ = RGBt[:,:,:,slices[i]].transpose(1,2,0)
     S_ = St[0,:,:,slices[i]]
@@ -466,9 +466,9 @@ for i in range(n):
     border |= S_ != np.roll(S_,shift=-1,axis=0)
     border |= S_ != np.roll(S_,shift=1,axis=1)
     border |= S_ != np.roll(S_,shift=-1,axis=1)
-    
+
     # draw
-    ax.imshow(alpha*border[...,None]*RGB_ + ((1-alpha*border)*Jt_)[...,None])    
+    ax.imshow(alpha*border[...,None]*RGB_ + ((1-alpha*border)*Jt_)[...,None])
     if i>0:
         ax.set_xticks([])
         ax.set_yticks([])
@@ -489,7 +489,7 @@ if True:# not os.path.exists(ontology_name):
     output = requests.get(r)
     with open(ontology_name,'wt') as f:
         f.write(output.text)
-        
+
 ontology = dict()
 with open(ontology_name) as f:
     csvreader = csv.reader(f, delimiter=',', quotechar='"')
@@ -505,7 +505,7 @@ with open(ontology_name) as f:
                 parent = int(row[8])
             ontology[int(row[0])] = (row[3],row[2],parent)
         count += 1
-        
+
 # or we could just loop through
 labels = np.unique(St)
 bbox = dict()
@@ -513,13 +513,13 @@ for l in labels:
     # skip background
     if l == 0:
         continue
-    
+
     Sl = St == l
     bbox2 = xJ[2][np.nonzero(np.sum(Sl,(0,1,2))>0)[0][[0,-1]]]
     bbox1 = xJ[1][np.nonzero(np.sum(Sl,(0,1,3))>0)[0][[0,-1]]]
     bbox0 = xJ[0][np.nonzero(np.sum(Sl,(0,2,3))>0)[0][[0,-1]]]
     bbox[l] = (bbox2[0],bbox2[1],bbox1[0],bbox1[1],bbox0[0],bbox0[1],ontology[l][0],ontology[l][1])
-    
+
 df = pd.DataFrame(bbox).T
 bbox_headings = ('x0','x1','y0','y1','z0','z1','short name','long name')
 df.columns=bbox_headings
@@ -555,14 +555,14 @@ for l in labels:
     # skip background
     if l == 0:
         continue
-    
+
     Sl = St == l
     # do marching cubes
-    
+
     verts,faces,normals,values = marching_cubes(Sl[0]*1.0,level=0.5,spacing=dJ)
     # deal with the offsets
     verts += oJ
-    
+
     # let's save this
     readme_dct = { 'notes' : 'Data are saved in ZYX order',
                    'atlas_id' : ontology[l][1],
@@ -604,7 +604,7 @@ for l in labels:
     ax.set_xlim(xlim)
     ax.set_ylim(ylim)
     ax.set_zlim(zlim)
-    
-    ax.set_title(f'structure {l}, {ontology[l][1]} ({ontology[l][0]})')    
+
+    ax.set_title(f'structure {l}, {ontology[l][1]} ({ontology[l][0]})')
     fig.canvas.draw()
     fig.savefig(os.path.join(output_prefix, f'structure_{l:012d}_surface_{clean_id}.jpg'))
