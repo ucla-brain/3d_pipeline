@@ -570,7 +570,10 @@ for l in labels:
                    'id' : ontology[l][0] }
     readme = str(readme_dct)
     # Clean id to prevent region names interfering with file name
-    clean_id = readme_dct["id"].replace('/', '_')
+    clean_id = readme_dct["id"]
+    for char in ['/', "' ", ', ', " "]:
+        clean_id = clean_id.replace(char, '_')
+
     structure_fname = os.path.join(output_prefix, f'structure_{l:012d}_surface_{clean_id}.npz')
     np.savez(structure_fname, verts=verts,faces=faces,normals=normals,values=values,readme=readme, origin=origin)
 
