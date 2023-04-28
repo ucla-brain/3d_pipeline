@@ -57,6 +57,7 @@ J /= np.mean(np.abs(J))
 xJ = target_data['xI']
 dJ = [x[1] - x[0] for x in xJ]
 J0 = np.copy(J)
+origin = np.array(xJ[0][0], -(xJ[1][0]), -(xJ[2][0]))  # Assumming a x, -y, -z origin
 
 if 'w' in target_data:
     W = target_data['w']
@@ -571,8 +572,8 @@ for l in labels:
     # Clean id to prevent region names interfering with file name
     clean_id = readme_dct["id"].replace('/', '_')
     structure_fname = os.path.join(output_prefix, f'structure_{l:012d}_surface_{clean_id}.npz')
-    np.savez(structure_fname, verts=verts,faces=faces,normals=normals,values=values,readme=readme)
-    
+    np.savez(structure_fname, verts=verts,faces=faces,normals=normals,values=values,readme=readme, origin=origin)
+
     # Export OBJ Wavefront format
     obj_fname = os.path.join(output_prefix, f'structure_{l:012d}_surface_{clean_id}.obj')
 
