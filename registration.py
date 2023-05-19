@@ -581,11 +581,11 @@ for l in labels:
     obj_fname = os.path.join(output_prefix, f'structure_{l:012d}_surface_{clean_id}.obj')
 
     # Create a 3D mesh using Poly3DCollection
-    vertices = np.array(vertices)
-    faces = np.array(faces)
+    verts_np = np.array(verts)
+    faces_np = np.array(faces)
 
     # Export the mesh to an OBJ file using trimesh
-    trimesh_obj = trimesh.Trimesh(vertices=vertices, faces=faces)
+    trimesh_obj = trimesh.Trimesh(vertices=verts_np, faces=faces_np)
     trimesh_obj.export(obj_fname)
 
 
