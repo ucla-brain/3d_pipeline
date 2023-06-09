@@ -673,7 +673,7 @@ for l in ontology:
     np.savez(struct_des_fname, verts=verts,faces=faces,normals=normals,values=values,readme=readme, origin=origin)
     
     # Export OBJ Wavefront format (DESENDENTS_VERSION)
-    obj_fname = os.path.join(output_prefix, f'structure_AND_DESCENDENTS_{l:012d}_surface.obj')
+    obj_fname = os.path.join(output_prefix, f'{l}.obj')
 
     # Create a 3D mesh using Poly3DCollection
     verts_np = np.array(verts)
