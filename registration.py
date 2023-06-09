@@ -481,15 +481,12 @@ fig.savefig(os.path.join(output_prefix, 'target_space.jpg'), **figopts)
 ### Get bounding boxes for striatum or another structure
 
 # bounding boxes using St
-ontology_name = os.path.join(output_prefix, 'allen_ontology.csv')
-r = 'http://api.brain-map.org/api/v2/data/query.csv?criteria=model::Structure,\
-rma::criteria,[ontology_id$eq1],\
-rma::options[order$eq%27structures.graph_order%27][num_rows$eqall]\
-'
-if True:# not os.path.exists(ontology_name):
-    output = requests.get(r)
-    with open(ontology_name,'wt') as f:
-        f.write(output.text)
+ontology_name = '/panfs/dong/atlas_3d/upenn_vtk/atlas_info_KimRef_FPbasedLabel_v2.7.csv'
+
+parent_column = 7  # 8 for allen, 7 for yongsoo
+label_column = 0  # 0 for both
+shortname_column = 2  # 3 for allen, 2 for yongsoo
+longname_column = 1  # 2 for allen, 1 for yongsoo
 
 ontology = dict()
 with open(ontology_name) as f:
@@ -500,12 +497,38 @@ with open(ontology_name) as f:
             headers = row
             print(headers)
         else:
-            if not row[8]:
+            if not row[parent_column]:
                 parent = -1
             else:
-                parent = int(row[8])
-            ontology[int(row[0])] = (row[3],row[2],parent)
+                parent = int(row[parent_column])
+            ontology[int(row[label_column])] = (row[shortname_column],row[longname_column],parent)
         count += 1
+
+# we need to find all the descendants of a given label
+# first we'll get children
+children = dict()
+for o in ontology:
+    parent = ontology[o][-1]
+    if parent not in children:
+        children[parent] = []
+    children[parent].append(o)
+
+
+# now we go from children to descendents
+descendents = dict(children)
+for o in descendents:
+    for child in descendents[o]:
+        if child in descendents: # if I don't do this i get a key error 0
+            descendents[o].extend(descendents[child])
+descendents[0] = []
+
+
+descendents_and_self = dict(descendents)
+for o in ontology:
+    if o not in descendents_and_self:
+        descendents_and_self[o] = [o]
+    else:
+        descendents_and_self[o].append(o)
 
 # or we could just loop through
 labels = np.unique(St)
@@ -516,6 +539,11 @@ for l in labels:
         continue
 
     Sl = St == l
+
+    # include all the descendents
+    for o in descendents_and_self[l]:
+        Sl = np.logical_or(Sl,St==o)
+
     bbox2 = xJ[2][np.nonzero(np.sum(Sl,(0,1,2))>0)[0][[0,-1]]]
     bbox1 = xJ[1][np.nonzero(np.sum(Sl,(0,1,3))>0)[0][[0,-1]]]
     bbox0 = xJ[0][np.nonzero(np.sum(Sl,(0,2,3))>0)[0][[0,-1]]]
@@ -612,3 +640,70 @@ for l in labels:
     ax.set_title(f'structure {l}, {ontology[l][1]} ({ontology[l][0]})')
     fig.canvas.draw()
     fig.savefig(os.path.join(output_prefix, f'structure_{l:012d}_surface_{clean_id}.jpg'))
+
+# Generate descendent meshes
+for l in ontology:
+    print(f'starting {l}')
+    # skip background
+    if l == 0:
+        print('skipping 0')
+        continue
+
+    Sl = St == l
+    count0 = np.sum(Sl)
+    # do marching cubes
+    print('adding ',end='')
+    for o in descendents_and_self[l]:
+        print(f'{o},',end='')
+        Sl = np.logical_or(Sl,St==o)
+    count1 = np.sum(Sl)
+    if count0 != count1:
+        print(f'Structure {l} shows differences')
+    if count1 == 0:
+        print(f'no voxels for structure {l}')
+        continue
+
+    verts,faces,normals,values = marching_cubes(Sl[0]*1.0,level=0.5,spacing=dJ)
+    # deal with the offsets
+    verts += oJ
+    
+    # let's save this
+    readme = 'Data are saved in ZYX order'
+    struct_des_fname = os.path.join(output_prefix, f'structure_AND_DESCENDENTS_{l:012d}_surface.npz')
+    np.savez(struct_des_fname, verts=verts,faces=faces,normals=normals,values=values,readme=readme, origin=origin)
+    
+    # Export OBJ Wavefront format (DESENDENTS_VERSION)
+    obj_fname = os.path.join(output_prefix, f'structure_AND_DESCENDENTS_{l:012d}_surface.obj')
+
+    # Create a 3D mesh using Poly3DCollection
+    verts_np = np.array(verts)
+    faces_np = np.array(faces)
+
+    # Export the mesh to an OBJ file using trimesh
+    trimesh_obj = trimesh.Trimesh(vertices=verts_np, faces=faces_np)
+    trimesh_obj.export(obj_fname)
+
+
+    surf = Poly3DCollection(verts[faces])
+    n = compute_face_normals(verts,faces,normalize=True)
+    surf.set_color(n*0.5+0.5)
+    fig.clf()
+    ax = fig.add_subplot(projection='3d')
+    ax.add_collection3d(surf)
+    xlim = (np.min(verts[:,0]),np.max(verts[:,0]))
+    ylim = (np.min(verts[:,1]),np.max(verts[:,1]))
+    zlim = (np.min(verts[:,2]),np.max(verts[:,2]))
+    # fix aspect ratio
+    r = [np.diff(x) for x in (xlim,ylim,zlim)]
+    rmax = np.max(r)
+    c = [np.mean(x) for x in (xlim,ylim,zlim)]
+    xlim = (c[0]-rmax/2,c[0]+rmax/2)
+    ylim = (c[1]-rmax/2,c[1]+rmax/2)
+    zlim = (c[2]-rmax/2,c[2]+rmax/2)
+    ax.set_xlim(xlim)
+    ax.set_ylim(ylim)
+    ax.set_zlim(zlim)
+    
+    ax.set_title(f'structure {l}, {ontology[l][1]} ({ontology[l][0]})')    
+    fig.canvas.draw()
+    fig.savefig(os.path.join(output_prefix, f'structure_AND_DESCENDENTS_{l:012d}_surface.jpg'))
