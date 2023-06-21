@@ -96,7 +96,6 @@ def downsample(input_path=None, image_type=None, output_filename=None,
         # if we couldn't calculate xI above, we'll use these defaults
         xI = [np.arange(n)*d - (n-1)/2.0*d for n,d in zip(nI,dI)]
 
-    xI = [np.arange(n)*d - (n-1)/2.0*d for n,d in zip(nI,dI)]
     nIreal = np.array([len(x) for x in xI])
 
     xId = [dw.downsample(x,[d]) for x,d in zip(xI,down)]
