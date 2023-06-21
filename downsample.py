@@ -193,10 +193,10 @@ def downsample(input_path=None, image_type=None, output_filename=None,
             out[np.isnan(out)] = 0.0
             out2 /= outw
             out2[np.isnan(out2)] = 0.0
-            outstd = out2 - out**2
-            outstd[outstd<0]=0
-            outstd = np.sqrt(outstd)
-            wd0 = (wd>0.0)[None]
+            # outstd = out2 - out**2
+            # outstd[outstd<0]=0
+            # outstd = np.sqrt(outstd)
+            # wd0 = (wd>0.0)[None]
             # if np.any(wd0):
             #     outshow = (out[0] - np.min(out[wd0]))/(np.quantile(out[wd0],0.99) - np.min(out[wd0]))
             #     outshowstd = (outstd[0] - np.min(outstd[wd0]))/(np.quantile(outstd[wd0],0.99) - np.min(outstd[wd0]))
