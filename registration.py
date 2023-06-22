@@ -577,69 +577,7 @@ bbox = dict()
 
 #verts0,faces0,normals0,values0 = marching_cubes((St[0]>0)*1.0,level=0.5,spacing=dJ)
 
-
 fig = plt.figure()
-
-for l in labels:
-    # skip background
-    if l == 0:
-        continue
-
-    Sl = St == l
-    # do marching cubes
-
-    verts,faces,normals,values = marching_cubes(Sl[0]*1.0,level=0.5,spacing=dJ)
-    # deal with the offsets
-    verts += oJ
-
-    # let's save this
-    readme_dct = { 'notes' : 'Data are saved in ZYX order',
-                   'atlas_id' : ontology[l][1],
-                   'id' : ontology[l][0] }
-    readme = str(readme_dct)
-    # Clean id to prevent region names interfering with file name
-    clean_id = readme_dct["id"]
-    for char in ['/', "' ", ', ', " "]:
-        clean_id = clean_id.replace(char, '_')
-
-    structure_fname = os.path.join(output_prefix, f'structure_{l:012d}_surface_{clean_id}.npz')
-    np.savez(structure_fname, verts=verts,faces=faces,normals=normals,values=values,readme=readme, origin=origin)
-
-    # Export OBJ Wavefront format
-    obj_fname = os.path.join(output_prefix, f'structure_{l:012d}_surface_{clean_id}.obj')
-
-    # Create a 3D mesh using Poly3DCollection
-    verts_np = np.array(verts)
-    faces_np = np.array(faces)
-
-    # Export the mesh to an OBJ file using trimesh
-    trimesh_obj = trimesh.Trimesh(vertices=verts_np, faces=faces_np)
-    trimesh_obj.export(obj_fname)
-
-
-    surf = Poly3DCollection(verts[faces])
-    n = compute_face_normals(verts,faces,normalize=True)
-    surf.set_color(n*0.5+0.5)
-    fig.clf()
-    ax = fig.add_subplot(projection='3d')
-    ax.add_collection3d(surf)
-    xlim = (np.min(verts[:,0]),np.max(verts[:,0]))
-    ylim = (np.min(verts[:,1]),np.max(verts[:,1]))
-    zlim = (np.min(verts[:,2]),np.max(verts[:,2]))
-    # fix aspect ratio
-    r = [np.diff(x) for x in (xlim,ylim,zlim)]
-    rmax = np.max(r)
-    c = [np.mean(x) for x in (xlim,ylim,zlim)]
-    xlim = (c[0]-rmax/2,c[0]+rmax/2)
-    ylim = (c[1]-rmax/2,c[1]+rmax/2)
-    zlim = (c[2]-rmax/2,c[2]+rmax/2)
-    ax.set_xlim(xlim)
-    ax.set_ylim(ylim)
-    ax.set_zlim(zlim)
-
-    ax.set_title(f'structure {l}, {ontology[l][1]} ({ontology[l][0]})')
-    fig.canvas.draw()
-    fig.savefig(os.path.join(output_prefix, f'structure_{l:012d}_surface_{clean_id}.jpg'))
 
 # Generate descendent meshes
 for l in ontology:
@@ -668,8 +606,16 @@ for l in ontology:
     verts += oJ
     
     # let's save this
-    readme = 'Data are saved in ZYX order'
-    struct_des_fname = os.path.join(output_prefix, f'structure_AND_DESCENDENTS_{l:012d}_surface.npz')
+    readme_dct = {'notes' : 'Data are saved in ZYX order',
+                  'atlas_id' : ontology[l][1],
+                  'id' : ontology[l][0] }
+    readme = str(readme_dct)
+    # Clean id to prevent region names interfering with file name
+    clean_id = readme_dct["id"]
+    for char in ['/', "' ", ', ', " "]:
+        clean_id = clean_id.replace(char, '_')
+
+    struct_des_fname = os.path.join(output_prefix, f'structure_AND_DESCENDENTS_{l:012d}_surface_{clean_id}.npz')
     np.savez(struct_des_fname, verts=verts,faces=faces,normals=normals,values=values,readme=readme, origin=origin)
     
     # Export OBJ Wavefront format (DESENDENTS_VERSION)
