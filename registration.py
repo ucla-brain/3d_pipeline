@@ -9,12 +9,11 @@ import pathlib
 import numpy as np
 import matplotlib.pyplot as plt
 import os
-import requests
+
 import csv
 import pandas as pd
 from skimage.measure import marching_cubes
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection
-import trimesh
 
 # for now add emlddmm library for registration
 # sys.path.append('/home/dtward/data/csh_data/emlddmm')
@@ -61,7 +60,7 @@ J /= np.mean(np.abs(J))
 xJ = target_data['xI']
 dJ = [x[1] - x[0] for x in xJ]
 J0 = np.copy(J)
-origin = np.array([xJ[0][0], -(xJ[1][0]), -(xJ[2][0])])  # Assumming a x, -y, -z origin
+origin = np.array([xJ[0][0], xJ[1][0], xJ[2][0]])  # Assumming a x, y, z origin
 
 if 'w' in target_data:
     W = target_data['w']
@@ -632,18 +631,6 @@ for l in ontology:
 
     struct_des_fname = os.path.join(output_prefix, f'structure_AND_DESCENDENTS_{l:012d}_surface_{clean_id}.npz')
     np.savez(struct_des_fname, verts=verts,faces=faces,normals=normals,values=values,readme=readme, origin=origin)
-    
-    # Export OBJ Wavefront format (DESENDENTS_VERSION)
-    obj_fname = os.path.join(output_prefix, f'{l}.obj')
-
-    # Create a 3D mesh using Poly3DCollection
-    verts_np = np.array(verts)
-    faces_np = np.array(faces)
-
-    # Export the mesh to an OBJ file using trimesh
-    trimesh_obj = trimesh.Trimesh(vertices=verts_np, faces=faces_np)
-    trimesh_obj.export(obj_fname)
-
 
     if jpg:
         surf = Poly3DCollection(verts[faces])
