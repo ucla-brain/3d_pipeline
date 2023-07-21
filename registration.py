@@ -29,6 +29,8 @@ parser.add_argument("savename",type=pathlib.Path,help="Name of file once it is s
 parser.add_argument("atlas_names",type=pathlib.Path,nargs='+',help="Location of the atlas images")
 parser.add_argument("-d","--device",default='cuda:0',help="Device used for pytorch")
 parser.add_argument("-a","--A0",type=str,default=None,help="Affine transformation (Squeezed to 16x1 + Sep by ',')")
+parser.add_argument("-res","--resolution", type=np.float32, choices=[20.0, 50.0], default=20, help="Resoultion used during downsampling")
+parser.add_argument("-j","--jpg", action="store_true", help="Generate 3d jpegs for each structure")
 
 args = parser.parse_args()
 
@@ -37,6 +39,8 @@ output_prefix = args.output_prefix
 atlas_names   = args.atlas_names
 seg_name      = args.seg_name
 savename      = args.savename
+resolution    = args.resolution
+jpg           = args.jpg
 device        = args.device
 A0            = args.A0
 
@@ -189,15 +193,20 @@ else:  # Use else here, otherwise this will always run
 # now we want to register
 config0 = {
     'device':device,
-    'n_iter':200, 'downI':[4,4,4], 'downJ':[4,4,4],
-     'priors':[0.9,0.05,0.05],'update_priors':False,
-     'update_muA':0,'muA':[np.quantile(J,0.99)],
-     'update_muB':0,'muB':[0.0],
-     'update_sigmaM':0,'update_sigmaA':0,'update_sigmaB':0,
-     'sigmaM':0.25,'sigmaB':0.5,'sigmaA':1.25,
-     'order':1,'n_draw':50,'n_estep':3,'slice_matching':0,'v_start':1000,
-     'eA':5e4,'A':A0,'full_outputs':True,
-   }
+    'n_iter':200, 'downI':[8, 8, 8], 'downJ':[8, 8, 8],
+    'priors':[0.9,0.05,0.05],'update_priors':False,
+    'update_muA':0,'muA':[np.quantile(J,0.99)],
+    'update_muB':0,'muB':[0.0],
+    'update_sigmaM':0,'update_sigmaA':0,'update_sigmaB':0,
+    'sigmaM':0.25,'sigmaB':0.5,'sigmaA':1.25,
+    'order':1,'n_draw':50,'n_estep':3,'slice_matching':0,'v_start':1000,
+    'eA':5e4,'A':A0,'full_outputs':True,
+}
+
+if resolution == 50:
+    config0['downI'] = [4, 4, 4]
+    config0['downJ'] = [4, 4, 4]
+
 # update my sigmas (august 22)
 config0['sigmaM'] = 1.0
 config0['sigmaB'] = 2.0
@@ -224,10 +233,11 @@ config1['n_iter']= 2000
 config1['v_start'] = 0
 config1['ev'] = 1e-2
 config1['ev'] = 2e-3 # reduce since I decreased sigma
-config1['v_res_factor'] = config1['a']/dI[0]/2 # what is the resolution of v, as a multiple of that in I
-config1['local_contrast'] = [32,32,32]
+config1['v_res_factor'] = config1['a']/dI[0]/4 # what is the resolution of v, as a multiple of that in I
 config1['local_contrast'] = [16,16,16]
-# config1['device'] = 'cpu'
+
+if resolution == 50:
+    config1['v_res_factor'] = config1['a']/dI[0]/2
 
 #I_ = np.stack((I[2],I[0],I[1],I[0]**2,I[0]*I[1],I[1]**2,))
 
@@ -249,8 +259,13 @@ config2 = dict(config1)
 config2['A'] = out1['A']
 config2['n_iter']= 1000
 config2['v'] = out1['v']
-config2['downI'] = [2,2,2]
-config2['downJ'] = [2,2,2]
+config2['downI'] = [4, 4, 4]
+config2['downJ'] = [4, 4, 4]
+
+if resolution == 50:
+    config2['downJ'] = [2, 2, 2]
+    config2['downI'] = [2, 2, 2]
+
 # there seems to be an issue with the initial velocity
 # when I run this twice, I'm reusing it
 out2 = emlddmm.emlddmm(xI=xI,I=I_,xJ=xJ,J=J, W0=W, **config2)
@@ -630,26 +645,27 @@ for l in ontology:
     trimesh_obj.export(obj_fname)
 
 
-    surf = Poly3DCollection(verts[faces])
-    n = compute_face_normals(verts,faces,normalize=True)
-    surf.set_color(n*0.5+0.5)
-    fig.clf()
-    ax = fig.add_subplot(projection='3d')
-    ax.add_collection3d(surf)
-    xlim = (np.min(verts[:,0]),np.max(verts[:,0]))
-    ylim = (np.min(verts[:,1]),np.max(verts[:,1]))
-    zlim = (np.min(verts[:,2]),np.max(verts[:,2]))
-    # fix aspect ratio
-    r = [np.diff(x) for x in (xlim,ylim,zlim)]
-    rmax = np.max(r)
-    c = [np.mean(x) for x in (xlim,ylim,zlim)]
-    xlim = (c[0]-rmax/2,c[0]+rmax/2)
-    ylim = (c[1]-rmax/2,c[1]+rmax/2)
-    zlim = (c[2]-rmax/2,c[2]+rmax/2)
-    ax.set_xlim(xlim)
-    ax.set_ylim(ylim)
-    ax.set_zlim(zlim)
-    
-    ax.set_title(f'structure {l}, {ontology[l][1]} ({ontology[l][0]})')    
-    fig.canvas.draw()
-    fig.savefig(os.path.join(output_prefix, f'structure_AND_DESCENDENTS_{l:012d}_surface.jpg'))
+    if jpg:
+        surf = Poly3DCollection(verts[faces])
+        n = compute_face_normals(verts,faces,normalize=True)
+        surf.set_color(n*0.5+0.5)
+        fig.clf()
+        ax = fig.add_subplot(projection='3d')
+        ax.add_collection3d(surf)
+        xlim = (np.min(verts[:,0]),np.max(verts[:,0]))
+        ylim = (np.min(verts[:,1]),np.max(verts[:,1]))
+        zlim = (np.min(verts[:,2]),np.max(verts[:,2]))
+        # fix aspect ratio
+        r = [np.diff(x) for x in (xlim,ylim,zlim)]
+        rmax = np.max(r)
+        c = [np.mean(x) for x in (xlim,ylim,zlim)]
+        xlim = (c[0]-rmax/2,c[0]+rmax/2)
+        ylim = (c[1]-rmax/2,c[1]+rmax/2)
+        zlim = (c[2]-rmax/2,c[2]+rmax/2)
+        ax.set_xlim(xlim)
+        ax.set_ylim(ylim)
+        ax.set_zlim(zlim)
+        
+        ax.set_title(f'structure {l}, {ontology[l][1]} ({ontology[l][0]})')    
+        fig.canvas.draw()
+        fig.savefig(os.path.join(output_prefix, f'structure_AND_DESCENDENTS_{l:012d}_surface.jpg'))
