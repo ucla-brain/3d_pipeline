@@ -1,22 +1,15 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# New modules to import
 import argparse
 import pathlib
-
-# Modules imported from original .ipynb file
 import numpy as np
 import matplotlib.pyplot as plt
 import os
-
 import csv
 import pandas as pd
 from skimage.measure import marching_cubes
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection
-
-# for now add emlddmm library for registration
-# sys.path.append('/home/dtward/data/csh_data/emlddmm')
 import emlddmm
 
 parser = argparse.ArgumentParser(description="Register images in atlas")
@@ -26,6 +19,7 @@ parser.add_argument("output_prefix",type=pathlib.Path,help="Location of the outp
 parser.add_argument("seg_name",type=pathlib.Path,help="Location of segmentation file")
 parser.add_argument("savename",type=pathlib.Path,help="Name of file once it is saved")
 parser.add_argument("atlas_names",type=pathlib.Path,nargs='+',help="Location of the atlas images")
+parser.add_argument("-on", "--onto_name", default=None, help="Location of atlas ontology")
 parser.add_argument("-d","--device",default='cuda:0',help="Device used for pytorch")
 parser.add_argument("-a","--A0",type=str,default=None,help="Affine transformation (Squeezed to 16x1 + Sep by ',')")
 parser.add_argument("-res","--resolution", type=np.float32, choices=[20.0, 50.0], default=20, help="Resoultion used during downsampling")
@@ -38,19 +32,22 @@ output_prefix = args.output_prefix
 atlas_names   = args.atlas_names
 seg_name      = args.seg_name
 savename      = args.savename
+ontology_name = args.ontology
 resolution    = args.resolution
 jpg           = args.jpg
 device        = args.device
 A0            = args.A0
 
+# Validations
+assert os.path.isfile(target_name), f"Downsample file was not found: {target_name}"
+assert os.path.isfile(seg_name), f"Atlas segmentation file was not found: {seg_name}"
+assert os.path.isfile(atlas_names[0]), f"Atlas image file was not found: {atlas_names[0]}"
+assert os.path.isfile(atlas_names[1]), f"Atlas image file was not found: {atlas_names[1]}"
+assert os.path.isfile(ontology_name), f"Atlas ontology file was not found: {ontology_name}"
+if not os.path.exists(pathlib.Path(output_prefix)):
+    os.mkdir(output_prefix)
+assert os.path.isdir(output_prefix), f"Output directory does not exist: {output_prefix}"
 
-# Specify output directory
-output_directory = os.path.split(output_prefix)[0]
-if output_directory:
-    if not os.path.exists(output_directory):
-        os.mkdir(output_directory)
-        
-        
 # Load the target image
 target_data = np.load(target_name,allow_pickle=True)
 
@@ -495,8 +492,6 @@ fig.savefig(os.path.join(output_prefix, 'target_space.jpg'), **figopts)
 ### Get bounding boxes for striatum or another structure
 
 # bounding boxes using St
-ontology_name = '/panfs/dong/atlas_3d/upenn_vtk/atlas_info_KimRef_FPbasedLabel_v2.7.csv'
-
 parent_column = 7  # 8 for allen, 7 for yongsoo
 label_column = 0  # 0 for both
 shortname_column = 2  # 3 for allen, 2 for yongsoo
