@@ -7,3 +7,4 @@ testing/
 logs/
 *.log
 results/
+launch_scripts/

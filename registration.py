@@ -32,7 +32,7 @@ output_prefix = args.output_prefix
 atlas_names   = args.atlas_names
 seg_name      = args.seg_name
 savename      = args.savename
-ontology_name = args.ontology
+ontology_name = args.onto_name
 resolution    = args.resolution
 jpg           = args.jpg
 device        = args.device
@@ -74,7 +74,6 @@ emlddmm.draw(W[None])
 
 fig,ax = emlddmm.draw(J,xJ,vmin=np.min(J[W[None]>0.9]))
 fig.suptitle('Downsampled lightsheet data')
-# figopts = {'dpi':300, 'quality':90}  # Errors keep coming up regarding 'quality'
 figopts = {'dpi' : 300}
 fig.savefig(os.path.join(output_prefix, 'downsampled.jpg'),**figopts)
 fig.canvas.draw()
