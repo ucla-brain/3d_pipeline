@@ -294,6 +294,9 @@ deformation = emlddmm.Transform(out2['v'],domain=out2['xv'],direction='b')
 affine = emlddmm.Transform(out2['A'],direction='b')
 tform = emlddmm.compose_sequence([affine,deformation],XJ)
 
+# keeping reference to affine to save
+affine1 = affine
+
 # transform the atlas and labels, notice different domains
 It = emlddmm.apply_transform_float(xI,I,tform).cpu().numpy()
 RGBt = emlddmm.apply_transform_float(xS,RGB,tform).cpu().numpy()
@@ -326,6 +329,12 @@ Jt = emlddmm.apply_transform_float(xJ,J_,tformi,padding_mode='zeros').cpu().nump
 # view the transformed target
 fig,ax = emlddmm.draw(Jt,xS,vmin=np.quantile(J_,0.02),vmax=np.quantile(J_,0.98))
 fig.subplots_adjust(wspace=0,hspace=0,right=1)
+
+np.savez(os.path.join(output_prefix, "affine_and_transform_values"),
+         affine1=affine1,
+         tform1=tform,
+         affine2=affine,
+         tform2=tformi)
 
 # view the transformed target with labels
 minval = 1.5
