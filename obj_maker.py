@@ -22,7 +22,7 @@ def transform_obj_files(input_folder, output_folder, scale, translation):
         mesh.export(output_file)
 
 
-def create_obj_files(input_folder, output_folder, file_list, scale, translation=None, verbose=False):
+def create_obj_files(input_folder, output_folder, file_list, scale, translation=None, matrix=None, verbose=False):
 
     for file_name in file_list:
         input_file = os.path.join(input_folder, file_name)
@@ -35,7 +35,8 @@ def create_obj_files(input_folder, output_folder, file_list, scale, translation=
 
         mesh = trimesh.Trimesh(vertices=verts, faces=faces)
         # mesh.vertices *= scale
-        # mesh.apply_transform(trimesh.transform_points(mesh,))
+        if matrix is not None:
+            mesh.apply_transform(matrix)
         if translation:
             mesh.vertices -= translation
 
@@ -56,6 +57,16 @@ def read_npz_data(fname):
     faces = data['faces']
     return verts, faces
 
+def create_matrix(matrix):
+    input_matrix = [int(x.strip()) for x in (matrix).split(',')]
+    assert len(input_matrix) == 9, "The 9 rotation values should be in 'x1,y1,z1,x2,y2,z2,x3,y3,z3' format"
+    rotation_matrix = [input_matrix[i:i+3] for i in range(0, 9, 3)]
+
+    matrix_4x4 = np.eye(4)  # Initialize a 4x4 identity matrix
+    matrix_4x4[:3, :3] = rotation_matrix # Copy the input matrix the top-left corner
+
+    return matrix_4x4
+
 
 def main():
     parser = argparse.ArgumentParser(description='Transform OBJ files.')
@@ -64,6 +75,7 @@ def main():
     parser.add_argument('-s', '--scale', type=float, default=1.0, help='Scaling factor')
     parser.add_argument('-npz', '--translation_npz', help='Translation values for (x, y, z) saved in a NPZ file.')
     parser.add_argument('-t', '--translation', default=None, help='Translation values in "x,y,z"')
+    parser.add_argument('-r', '--rotation_matrix', default=None, help='Rotation (reorientation) matrix in x1,y1,z1,x2,y2,z2,x3,y3,z3. For [x1,y1,z1],[x2,y2,z2],[x3,y3,z3]"')
 
     args = parser.parse_args()
     translation = None
@@ -95,7 +107,11 @@ def main():
 
     # Create object files
     print(f"Creating {len(npz_files)} OBJ files")
-    create_obj_files(input_folder, args.output, npz_files, args.scale, translation)
+    if args.rotation_matrix is not None:
+        matrix = create_matrix(args.rotation_matrix)
+        create_obj_files(input_folder, args.output, npz_files, args.scale, translation, matrix)
+    else:
+        create_obj_files(input_folder, args.output, npz_files, args.scale, translation)
     print("Done")
 
 if __name__ == '__main__':    
