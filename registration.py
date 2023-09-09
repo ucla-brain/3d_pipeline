@@ -156,6 +156,8 @@ fig.canvas.draw()
 
 ### Registration
 
+XJ = np.meshgrid(*xJ,indexing='ij')
+
 if A0 == None:
     # initial affine
     A0 = np.eye(4)
@@ -173,17 +175,17 @@ if A0 == None:
     #A0[0,-1] = +3500 # left right, positive will cut off the missing hemisphere as appropriate
     #A0[1,-1] = -2500 # AP, negative will cut off the nose
     #A0[2,-1] = -1000 # SI, negative will move the venttral surface toward the boundary
-
-    XJ = np.meshgrid(*xJ,indexing='ij')
     A0[:3,-1] = np.mean(XJ,axis=(-1,-2,-3))
 
-    # check it
-    tform = emlddmm.Transform(A0,direction='b')
-    AI = emlddmm.apply_transform_float(xI,I,tform.apply(XJ))
-    fig,ax = emlddmm.draw(np.concatenate((AI[:2],J)),xJ,vmin=0)
-    fig.canvas.draw()
 else:  # Use else here, otherwise this will always run
     A0 = np.fromstring(A0,sep=',').reshape(4,4)
+
+# check it
+tform = emlddmm.Transform(A0,direction='b')
+AI = emlddmm.apply_transform_float(xI,I,tform.apply(XJ))
+fig,ax = emlddmm.draw(np.concatenate((AI[:2],J)),xJ,vmin=0)
+fig.suptitle('Initial Affine Transformation')
+fig.savefig(os.path.join(output_prefix, 'initial_atlas_space.jpg'), **figopts)
 
 # now we want to register
 config0 = {
