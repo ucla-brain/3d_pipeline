@@ -65,6 +65,9 @@ python downsample.py /path/to/image.ims ims /path/to/temp_dir_4059c0 -res 50.0 -
 ```sh
 python registration.py /path/to/target.npz /path/to/outdir /path/to/annotation.vtk file_name /path/to/atlas /path/to/template
 ```
+```sh
+python  obj_maker.py  --input /path/to/npz --output /path/to/outdir  --translation='x,y,z' --rotation_matrix='x1,y1,z1,x2,y2,z3,x3,y3,z3'
+```
 
 launch script usage
 ```sh
