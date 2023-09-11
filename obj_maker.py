@@ -94,7 +94,8 @@ def main():
 
     # Get translation values if available
     if args.translation is not None:
-        translation = [int(val) for val in (args.translation).split(',')]
+        translation = [float(val) for val in (args.translation).split(',')]
+        negative_translation = [i * -1 for i in translation]
         assert len(translation) == 3, "Translation values should be in 'z, y, x' format"
     elif args.translation_npz is not None:
         translation = get_translation(args.translation_npz)
@@ -109,9 +110,9 @@ def main():
     print(f"Creating {len(npz_files)} OBJ files")
     if args.rotation_matrix is not None:
         matrix = create_matrix(args.rotation_matrix)
-        create_obj_files(input_folder, args.output, npz_files, args.scale, translation, matrix)
+        create_obj_files(input_folder, args.output, npz_files, args.scale, negative_translation, matrix)
     else:
-        create_obj_files(input_folder, args.output, npz_files, args.scale, translation)
+        create_obj_files(input_folder, args.output, npz_files, args.scale, negative_translation)
     print("Done")
 
 if __name__ == '__main__':    
