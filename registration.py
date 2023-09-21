@@ -60,8 +60,8 @@ def get_origin(vox_data):
 def save_figure(figure, name, outpath="", title=""):
     print(f"Generating {name} figure")
     figure.suptitle(title)
-    figure.savefig(os.path.join(outpath, name), **FIG_OPTIONS)
-    figure.close()
+    figure.savefig(os.path.join(outpath, name + ".jpg"), **FIG_OPTIONS)
+    plt.close()
 
 def generate_atlas_space_figure(I, S, RGB, Jt, outdir):
     # view the transformed target with labels
@@ -443,6 +443,7 @@ def generate_3d_surface_plot(verts, faces, ontology, label, outpath):
     
     ax.set_title(f'structure {label}, {ontology[label][1]} ({ontology[label][0]})')    
     fig.savefig(os.path.join(outpath, f'structure_{label:012d}_surface.jpg'))
+    plt.close()
 
 def generate_npz_mesh_file(l, verts, faces, normals, values, ontology, origin, outpath):
     
