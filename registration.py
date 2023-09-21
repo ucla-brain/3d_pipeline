@@ -581,7 +581,7 @@ def register():
     tform = emlddmm.compose_sequence([affine,deformation],XJ)
 
     # keeping reference to affine for saving
-    affine1 = affine
+    affine_np = affine.data.numpy()
 
     # transform the atlas and labels, notice different domains
     It = emlddmm.apply_transform_float(xI,I,tform).cpu().numpy()
@@ -615,9 +615,9 @@ def register():
     fig.subplots_adjust(wspace=0,hspace=0,right=1)
 
     np.savez(os.path.join(output_prefix, "affine_and_transform_values"),
-            affine1=affine1,
+            affine1=affine_np,
             tform1=tform,
-            affine2=affine,
+            affine2=affine.data.numpy(),
             tform2=tformi)
 
     # Generate atlas space visualization
