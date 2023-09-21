@@ -23,10 +23,10 @@ def transform_obj_files(input_folder, output_folder, scale, translation):
 
 
 def create_obj_files(input_folder, output_folder, file_list, scale, translation=None, matrix=None, verbose=False):
-
     for file_name in file_list:
         input_file = os.path.join(input_folder, file_name)
         structure_num = re.findall('\d+',file_name)
+        print(f'Rename for {file_name} using {structure_num} for conversion...')
         struct_num_str = int(''.join(str(x) for x in structure_num))
         output_filename = str(struct_num_str)+'.obj'
         output_file = os.path.join(output_folder, output_filename)
@@ -82,7 +82,7 @@ def main():
 
     # Validations
     if os.path.isdir(args.input):
-        npz_files = [file_name for file_name in os.listdir(args.input) if file_name.endswith('.npz')]
+        npz_files = [file_name for file_name in os.listdir(args.input) if file_name.endswith('.npz') and file_name.startswith('structure_')]
         assert len(npz_files) > 0, f"Input folder {args.input} doesn't contain npz files"
         input_folder = args.input
     elif os.path.isfile(args.input):
@@ -93,6 +93,7 @@ def main():
         sys.exit(f"{args.input} is not valid input")
 
     # Get translation values if available
+    negative_translation = None
     if args.translation is not None:
         translation = [float(val) for val in (args.translation).split(',')]
         negative_translation = [i * -1 for i in translation]
