@@ -1,8 +1,7 @@
 # This script comes from https://github.com/twardlab/emlddmm
-# commit 06faa588ee9dc029c435217174171591a95c30ce
-# Merge: fc6ad9c c3d4a5d
-# Author: Daniel Tward
-# Date:   Thu Aug 31 10:30:40 2023 -0700
+# commit 39731bc6c5f871f816cedac574c654d528e9b445
+# Author: Daniel Tward <daniel.tward@gmail.com>
+# Date:   Fri Sep 15 14:46:23 2023 -0700
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -25,7 +24,8 @@ from warnings import warn
 import tifffile as tf # for 16 bit tiff
 from scipy.stats import mode
 from scipy.interpolate import interpn
-from PIL import Image # only required for one format conversion function
+import PIL # only required for one format conversion function
+PIL.Image.MAX_IMAGE_PIXELS = None # prevent decompression bomb error
 
 # display
 def extent_from_x(xJ):
@@ -58,7 +58,7 @@ p.imshow.
                (xJ[0][-1] + dJ[0]/2.0).item(),
                (xJ[0][0] - dJ[0]/2.0).item())
     return extentJ
-def draw(J,xJ=None,fig=None,n_slices=5,vmin=None,vmax=None,disp=True,cbar=False,**kwargs):    
+def draw(J,xJ=None,fig=None,n_slices=5,vmin=None,vmax=None,disp=True,cbar=False,slices_start_end=[None,None,None],**kwargs):    
     """ Draw 3D imaging data.
     
     Images are shown by sampling slices along 3 orthogonal axes.
@@ -154,7 +154,10 @@ def draw(J,xJ=None,fig=None,n_slices=5,vmin=None,vmax=None,disp=True,cbar=False,
     axs = []
     axsi = []
     # ax0
-    slices = np.round(np.linspace(0,J.shape[1]-1,n_slices+2)[1:-1]).astype(int)        
+    slices = np.round(np.linspace(0,J.shape[1]-1,n_slices+2)[1:-1]).astype(int)     
+    if slices_start_end[0] is not None:
+        slices = np.round(np.linspace(slices_start_end[0][0],slices_start_end[0][1],n_slices+2)[1:-1]).astype(int)     
+        
     # for origin upper (default), extent is x (small to big), then y reversed (big to small)
     extent = (xJ[2][0],xJ[2][-1],xJ[1][-1],xJ[1][0])
     for i in range(n_slices):
@@ -169,6 +172,8 @@ def draw(J,xJ=None,fig=None,n_slices=5,vmin=None,vmax=None,disp=True,cbar=False,
     axsi = []
     # ax1
     slices = np.round(np.linspace(0,J.shape[2]-1,n_slices+2)[1:-1]).astype(int)    
+    if slices_start_end[1] is not None:
+        slices = np.round(np.linspace(slices_start_end[1][0],slices_start_end[1][1],n_slices+2)[1:-1]).astype(int)         
     extent = (xJ[2][0],xJ[2][-1],xJ[0][-1],xJ[0][0])
     for i in range(n_slices):
         ax = fig.add_subplot(3,n_slices,i+1+n_slices)      
@@ -182,6 +187,9 @@ def draw(J,xJ=None,fig=None,n_slices=5,vmin=None,vmax=None,disp=True,cbar=False,
     axsi = []
     # ax2
     slices = np.round(np.linspace(0,J.shape[3]-1,n_slices+2)[1:-1]).astype(int)        
+    if slices_start_end[2] is not None:
+        slices = np.round(np.linspace(slices_start_end[2][0],slices_start_end[2][1],n_slices+2)[1:-1]).astype(int)     
+    
     extent = (xJ[1][0],xJ[1][-1],xJ[0][-1],xJ[0][0])
     for i in range(n_slices):        
         ax = fig.add_subplot(3,n_slices,i+1+n_slices*2)
@@ -1411,8 +1419,10 @@ def emlddmm(**kwargs):
         
         
         # reg cost (note that with no complex, there are two elements on the last axis)
-        version_num = int(torch.__version__.split('.')[1])
-        if version_num < 7:
+        #version_num = int(torch.__version__.split('.')[1])
+        #version_num = float('.'.join( torch.__version__.split('.')[:2] ))
+        version_num = [int(x) for x in torch.__version__.split('.')[:2]]
+        if version_num[0] <= 1 and version_num[1]< 7:
             vhat = torch.rfft(v,3,onesided=False)
         else:
             #vhat = torch.view_as_real(torch.fft.fftn(v,dim=3,norm="backward"))
@@ -1431,7 +1441,7 @@ def emlddmm(**kwargs):
         E.backward()
 
         # covector to vector
-        if version_num < 7:
+        if version_num[0] <= 1 and version_num[1]< 7:
             vgrad = torch.irfft(torch.rfft(v.grad,3,onesided=False)*(KK)[None,None,...,None],3,onesided=False)
         else:
 
@@ -4131,7 +4141,7 @@ def convert_points_from_json(points, d_high, n_high=None, sidecar=None, z=None, 
     if isinstance(points,str):
         if verbose: print(f'points was a string, loading from json file')
         # If we specified a string, load the points
-        with open(cell_detect_file,'rt') as f:
+        with open(points,'rt') as f:
             data = json.load(f)
         points = data['features'][0]['geometry']['coordinates']
         points = [p for p in points if p]
@@ -4176,7 +4186,7 @@ def convert_points_from_json(points, d_high, n_high=None, sidecar=None, z=None, 
         elif isinstance(n_high,str):
             if verbose: print(f'loading n_high from jp2 file')
             # this sould be a jp2 file
-            image = Image.open(image_high_file)
+            image = PIL.Image.open(n_high)
             n_high = np.array(image.size) # this should be xy
             image.close()
         # in this case, the point 0,0 (first pixel) should have a coordinate -n/2            
@@ -4238,7 +4248,7 @@ def apply_transform_from_file_to_points(q,tform_file):
     
 
 
-def orientation_to_RAS(orientation):
+def orientation_to_RAS(orientation,verbose=False):
     ''' Compute a linear transform from a given orientation to RAS.
     
     Orientations are specified using 3 letters, by selecting one of each 
@@ -4258,7 +4268,7 @@ def orientation_to_RAS(orientation):
     '''
     orientation_ = [o for o in orientation]
     Ao = np.eye(3)
-    # first step, flip if necessary
+    # first step, flip if necessary, so we only use symbols R A and S
     for i in range(3):
         if orientation_[i] == 'L':
             Ao[i,i] *= -1
@@ -4289,17 +4299,16 @@ def orientation_to_RAS(orientation):
     elif orientation_ == ['S','R','A']:
         # flip the first two, then the second two
         Ao = np.eye(3)[[0,2,1]]@np.eye(3)[[1,0,2]]@Ao 
-        orientation_ = [orientation_[1],orientation_[2],orientation_[0]]
-        pass
+        orientation_ = [orientation_[1],orientation_[2],orientation_[0]]        
     elif orientation_ == ['S','A','R']:
         # flip the first and last
-        Ao = np.eye(3)[[2,1,0]]@Ao 
+        Ao = np.eye(3)[[2,1,0]]@Ao         
         orientation_ = [orientation_[2],orientation_[1],orientation_[0]]    
     else:
         raise Exception('Something is wrong with your orientation')
     return Ao
 
-def orientation_to_orientation(orientation0,orientation1):
+def orientation_to_orientation(orientation0,orientation1,verbose=False):
     ''' Compute a linear transform from one given orientation to another.
     
     Orientations are specified using 3 letters, by selecting one of each 
@@ -4319,7 +4328,7 @@ def orientation_to_orientation(orientation0,orientation1):
         A linear transformation to transform your image from orientation0 to orientation1        
     
     '''
-    Ao = np.linalg.inv(orientation_to_RAS(orientation1))@orientation_to_RAS(orientation0)
+    Ao = np.linalg.inv(orientation_to_RAS(orientation1,verbose))@orientation_to_RAS(orientation0,verbose)
     return Ao    
         
     
