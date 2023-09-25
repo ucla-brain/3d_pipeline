@@ -7,6 +7,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import os
 import csv
+from datetime import datetime
 import pandas as pd
 from skimage.measure import marching_cubes
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection
@@ -56,6 +57,14 @@ def get_w(data, image):
 
 def get_origin(vox_data):
     return np.array([vox_data[0][0], vox_data[1][0], vox_data[2][0]])
+
+def save_metadata(target, segmentation, outpath, affine):
+    with open(os.path.join(outpath, "registration_metadata.txt"), 'w') as f:
+        metadata = f"Date: {str(datetime.now())}\n"
+        metadata += f"Downsampled File: {target}\n"
+        metadata += f"Segmentation File: {segmentation}\n"
+        metadata += f"Initial Affine: {affine}\n"
+        f.write(metadata)
 
 def save_figure(figure, name, outpath="", title=""):
     print(f"Generating {name} figure")
@@ -496,6 +505,10 @@ def register():
     if not os.path.exists(pathlib.Path(output_prefix)):
         os.mkdir(output_prefix)
     assert os.path.isdir(output_prefix), f"Output directory does not exist: {output_prefix}"
+
+    # Record metadata
+    print("Recording metadata")
+    save_metadata(target_name, seg_name, output_prefix, A0)
 
     #####################
     ## LOADING IMAGES
