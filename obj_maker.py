@@ -50,6 +50,9 @@ def get_translation(fname):
     data = np.load(fname,allow_pickle=True)
     return data['xI'][0][0],data['xI'][1][0],data['xI'][2][0]
 
+def get_new_translation(fname):
+    data = np.load(fname,allow_pickle=True)
+    return data['origin']
 
 def read_npz_data(fname):
     data = np.load(fname)
@@ -99,7 +102,8 @@ def main():
         negative_translation = [i * -1 for i in translation]
         assert len(translation) == 3, "Translation values should be in 'z, y, x' format"
     elif args.translation_npz is not None:
-        translation = get_translation(args.translation_npz)
+        # translation = get_translation(args.translation_npz) # This is the old way of getting offset value from the downsample .npz file
+        translation = get_new_translation(args.translation_npz)        
 
     if translation is not None:
         print(f"Using translation {translation}")
