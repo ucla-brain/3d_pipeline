@@ -99,14 +99,12 @@ def main():
     negative_translation = None
     if args.translation is not None:
         translation = [float(val) for val in (args.translation).split(',')]
-        negative_translation = [i * -1 for i in translation]
-        assert len(translation) == 3, "Translation values should be in 'z, y, x' format"
     elif args.translation_npz is not None:
         # translation = get_translation(args.translation_npz) # This is the old way of getting offset value from the downsample .npz file
-        translation = get_new_translation(args.translation_npz)        
+        translation = get_new_translation(args.translation_npz)
 
-    if translation is not None:
-        print(f"Using translation {translation}")
+    negative_translation = [i * -1 for i in translation]
+    assert len(translation) == 3, "Translation values should be in 'z, y, x' format"
 
     # Create output folder if it doesn't exist
     os.makedirs(args.output, exist_ok=True)
