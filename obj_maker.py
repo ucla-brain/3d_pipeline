@@ -5,6 +5,8 @@ import trimesh
 import numpy as np
 import re
 import sys
+from tqdm import tqdm
+import time
 
 
 def transform_obj_files(input_folder, output_folder, scale, translation):
@@ -23,10 +25,12 @@ def transform_obj_files(input_folder, output_folder, scale, translation):
 
 
 def create_obj_files(input_folder, output_folder, file_list, scale, translation=None, matrix=None, verbose=False):
-    for file_name in file_list:
+    start_time = time.time()
+    for file_name in tqdm(file_list, desc="Create OBJ files"):        
+
         input_file = os.path.join(input_folder, file_name)
         structure_num = re.findall('\d+',file_name)
-        print(f'Rename for {file_name} using {structure_num} for conversion...')
+        #print(f'Rename for {file_name} using {structure_num} for conversion...')
         struct_num_str = int(''.join(str(x) for x in structure_num))
         output_filename = str(struct_num_str)+'.obj'
         output_file = os.path.join(output_folder, output_filename)
@@ -45,14 +49,25 @@ def create_obj_files(input_folder, output_folder, file_list, scale, translation=
         if verbose:
             print(f"Created OBJ file {output_file}")
 
+    end_time = time.time()
+    elapsed_time = end_time - start_time
+    print(f"Total time taken: {elapsed_time} seconds")
 
-def get_translation(fname):
-    data = np.load(fname,allow_pickle=True)
-    return data['xI'][0][0],data['xI'][1][0],data['xI'][2][0]
+# deprecated
+#def get_translation(fname):
+#    data = np.load(fname,allow_pickle=True)
+#    return data['xI'][0][0],data['xI'][1][0],data['xI'][2][0]
 
-def get_new_translation(fname):
+def parse_transformation_matrix(matrix_str):
+    matrix_values = np.array(matrix_str.split(','), dtype=float)
+    transformation_matrix = matrix_values.reshape(3, 3)
+    return transformation_matrix
+
+def get_origin_offset(fname, transformation_matrix):
     data = np.load(fname,allow_pickle=True)
-    return data['origin']
+    origin = (data['origin'][2], data['origin'][1], data['origin'][0]) # data['origin'] is stored z,y,x
+    transformed_origin = np.dot(transformation_matrix, origin)
+    return list(transformed_origin.astype(int))  # Round and convert to integers
 
 def read_npz_data(fname):
     data = np.load(fname)
@@ -96,15 +111,15 @@ def main():
         sys.exit(f"{args.input} is not valid input")
 
     # Get translation values if available
-    negative_translation = None
     if args.translation is not None:
         translation = [float(val) for val in (args.translation).split(',')]
+        translation = [i * -1 for i in translation]
     elif args.translation_npz is not None:
         # translation = get_translation(args.translation_npz) # This is the old way of getting offset value from the downsample .npz file
-        translation = get_new_translation(args.translation_npz)
+        rot_mat = parse_transformation_matrix(args.rotation_matrix)
+        translation = get_origin_offset(args.translation_npz, rot_mat)
 
-    negative_translation = [i * -1 for i in translation]
-    assert len(translation) == 3, "Translation values should be in 'z, y, x' format"
+    assert len(translation) == 3
 
     # Create output folder if it doesn't exist
     os.makedirs(args.output, exist_ok=True)
@@ -113,9 +128,9 @@ def main():
     print(f"Creating {len(npz_files)} OBJ files")
     if args.rotation_matrix is not None:
         matrix = create_matrix(args.rotation_matrix)
-        create_obj_files(input_folder, args.output, npz_files, args.scale, negative_translation, matrix)
+        create_obj_files(input_folder, args.output, npz_files, args.scale, translation, matrix)
     else:
-        create_obj_files(input_folder, args.output, npz_files, args.scale, negative_translation)
+        create_obj_files(input_folder, args.output, npz_files, args.scale, translation)
     print("Done")
 
 if __name__ == '__main__':    
