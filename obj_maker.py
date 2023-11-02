@@ -35,11 +35,14 @@ def create_obj_files(input_folder, output_folder, file_list, scale, translation=
 
         structure_num = None
         file_name_splits = file_name.split('_')
-        if len(file_name_splits) >= 4 and file_name_splits[3].isdigit():
-            structure_num = int(file_name_splits[3])
-            print(structure_num)
+        for part in file_name_splits:
+            if part.isdigit():
+                structure_num = int(part)
+                break
+        if structure_num == None:
+            print("No match found.")
         else:
-            print("No match found.")        
+            print(structure_num)
 
         print(f'Rename for {file_name} using {structure_num} for conversion...')
         output_filename = str(structure_num)+'.obj'
