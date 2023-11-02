@@ -7,6 +7,7 @@ import re
 import sys
 from tqdm import tqdm
 import time
+import shutil
 
 
 def transform_obj_files(input_folder, output_folder, scale, translation):
@@ -25,15 +26,25 @@ def transform_obj_files(input_folder, output_folder, scale, translation):
 
 
 def create_obj_files(input_folder, output_folder, file_list, scale, translation=None, matrix=None, verbose=False):
+
     start_time = time.time()
-    for file_name in tqdm(file_list, desc="Create OBJ files"):        
+    generated_obj_files = []
+    for file_name in tqdm(file_list, desc="Create OBJ files"):
 
         input_file = os.path.join(input_folder, file_name)
-        structure_num = re.findall('\d+',file_name)
-        #print(f'Rename for {file_name} using {structure_num} for conversion...')
-        struct_num_str = int(''.join(str(x) for x in structure_num))
-        output_filename = str(struct_num_str)+'.obj'
+
+        structure_num = None
+        file_name_splits = file_name.split('_')
+        if len(file_name_splits) >= 4 and file_name_splits[3].isdigit():
+            structure_num = int(file_name_splits[3])
+            print(structure_num)
+        else:
+            print("No match found.")        
+
+        print(f'Rename for {file_name} using {structure_num} for conversion...')
+        output_filename = str(structure_num)+'.obj'
         output_file = os.path.join(output_folder, output_filename)
+        generated_obj_files.append(output_file)
 
         verts, faces = read_npz_data(input_file)
 
@@ -48,6 +59,12 @@ def create_obj_files(input_folder, output_folder, file_list, scale, translation=
         mesh.export(output_file)
         if verbose:
             print(f"Created OBJ file {output_file}")
+
+    # Check the generated obj files
+    try:
+        assert len(file_list) == len(generated_obj_files)
+    except AssertionError:
+        print(f"NPZ list has {len(file_list)} items, and OBJ list has {len(generated_obj_files)} items.")
 
     end_time = time.time()
     elapsed_time = end_time - start_time
@@ -121,8 +138,10 @@ def main():
 
     assert len(translation) == 3
 
-    # Create output folder if it doesn't exist
-    os.makedirs(args.output, exist_ok=True)
+    # remove the output folder first
+    if os.path.exists(args.output):
+        shutil.rmtree(args.output, ignore_errors=True)
+    os.makedirs(args.output, exist_ok=True)    
 
     # Create object files
     print(f"Creating {len(npz_files)} OBJ files")
