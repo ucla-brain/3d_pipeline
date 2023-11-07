@@ -9,6 +9,8 @@ from tqdm import tqdm
 import time
 import shutil
 
+# Globals
+generated_obj_files = []
 
 def transform_obj_files(input_folder, output_folder, scale, translation):
     file_list = [file_name for file_name in os.listdir(input_folder) if file_name.endswith('.obj')]
@@ -28,7 +30,6 @@ def transform_obj_files(input_folder, output_folder, scale, translation):
 def create_obj_files(input_folder, output_folder, file_list, scale, translation=None, matrix=None, verbose=False):
 
     start_time = time.time()
-    generated_obj_files = []
     for file_name in tqdm(file_list, desc="Create OBJ files"):
 
         input_file = os.path.join(input_folder, file_name)
@@ -44,7 +45,7 @@ def create_obj_files(input_folder, output_folder, file_list, scale, translation=
         else:
             print(structure_num)
 
-        print(f'Rename for {file_name} using {structure_num} for conversion...')
+        # print(f'Rename for {file_name} using {structure_num} for conversion...')
         output_filename = str(structure_num)+'.obj'
         output_file = os.path.join(output_folder, output_filename)
         generated_obj_files.append(output_file)
@@ -105,6 +106,12 @@ def create_matrix(matrix):
 
     return matrix_4x4
 
+def count_files(directory, extension):
+    count = 0
+    for filename in os.listdir(directory):
+        if os.path.isfile(os.path.join(directory, filename)) and filename.endswith(extension):
+            count += 1
+    return count
 
 def main():
     parser = argparse.ArgumentParser(description='Transform OBJ files.')
