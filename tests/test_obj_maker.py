@@ -24,6 +24,8 @@ completed_paths = ('input_dir, output_dir', [
     ("/qnap/3D_stitched_LS/20230624_SM230223_05_LS_15x_800z_Double_MORF_B4/Registration/Yongsoo_20um/","/qnap/ChristianE/output_objs/B4/") ,
 # B5
     ("/qnap/3D_stitched_LS/20230724_SM230601_05_LS_15x_800z_B5/Registration/Yongsoo_20um/","/qnap/ChristianE/output_objs/B5/") ,
+# B6
+    ("/qnap/3D_stitched_LS/20230825_SM230601_06_LS_15x_800z_B6/Registration/Yongsoo_20um/","/qnap/ChristianE/output_objs/B6/") ,
 # NB1
     ("/qnap/3D_stitched_LS/20220818_SW220405_05_LS_6x_1000z_NB1/Registration/Yongsoo_20um/structures_v1/","/qnap/ChristianE/output_objs/NB1/") ,
 # NB2
