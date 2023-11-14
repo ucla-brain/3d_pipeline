@@ -81,7 +81,9 @@ launch_slurm_3d_registration.sh $target_name $output_dir $seg_name $output_file 
 <!-- Testing -->
 ## Tests
 
-Setup testing environment using conda
+Setup testing environment using conda. 
+
+Important: Python (and Pytest) must use Python version 3.6 and above.
 
 1. Create virtual environment using conda
    ```sh

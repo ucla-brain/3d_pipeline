@@ -25,7 +25,7 @@ completed_paths = ('input_dir, output_dir', [
 # B5
     ("/qnap/3D_stitched_LS/20230724_SM230601_05_LS_15x_800z_B5/Registration/Yongsoo_20um/","/qnap/ChristianE/output_objs/B5/") ,
 # B6
-    ("/qnap/3D_stitched_LS/20230825_SM230601_06_LS_15x_800z_B6/Registration/Yongsoo_20um/","/qnap/ChristianE/output_objs/B6/") ,
+    ("/qnap/3D_stitched_LS/20230825_SM230601_06_LS_15x_800z_B6/Registration/Yongsoo_20um/","/qnap/ChristianE/output_objs/B6/"),
 # NB1
     ("/qnap/3D_stitched_LS/20220818_SW220405_05_LS_6x_1000z_NB1/Registration/Yongsoo_20um/structures_v1/","/qnap/ChristianE/output_objs/NB1/") ,
 # NB2
@@ -70,7 +70,7 @@ class TestObjMaker:
     @pytest.mark.parametrize("input_dir", test_paths)
     def test_create_obj_files(self, input_dir, temp_output_dir, extract_number_from_filename, count_files):
         if not (os.path.exists(input_dir)):
-            pytest.skip("Input directory does not exist, skipping test.")
+            assert False, f"Input directory does not exist, skipping test. Directory: {input_dir}"
         file_list = [file_name for file_name in os.listdir(input_dir) if file_name.endswith('.npz')]
         output_dir = temp_output_dir
         create_obj_files(input_dir, output_dir, file_list, 1, None, None, False)
@@ -94,7 +94,7 @@ class TestObjMaker:
     @pytest.mark.parametrize(*completed_paths)
     def test_modified_file_counts(self, input_dir, output_dir, count_files):
         if not (os.path.exists(input_dir) and os.path.exists(output_dir)):
-            pytest.skip("Input or output directory does not exist, skipping test.")
+            assert False, f"Input or output directory does not exist, skipping test."
 
         npz_count = count_files(input_dir, '.npz')
         obj_count = count_files(output_dir, '.obj')
@@ -108,7 +108,7 @@ class TestObjMaker:
     @pytest.mark.parametrize(*completed_paths)
     def test_existing_filenames(self, input_dir, output_dir, extract_number_from_filename):
         if not (os.path.exists(input_dir) and os.path.exists(output_dir)):
-            pytest.skip("Input or output directory does not exist, skipping test.")
+            assert False, f"Input or output directory does not exist, skipping test."
         
         input_files = [f for f in os.listdir(input_dir) if (f.endswith('.npz') and re.search(r'\d', f))]
 
