@@ -81,4 +81,19 @@ launch_slurm_3d_registration.sh $target_name $output_dir $seg_name $output_file 
 <!-- Testing -->
 ## Tests
 
-These are in progress
+Setup testing environment using conda
+
+1. Create virtual environment using conda
+   ```sh
+   conda env create -f environment.yml
+   ```
+
+2. Activate conda environment
+   ```sh
+   conda activate 3d_pipeline_pytest
+   ```
+
+3. Run tests
+   ```sh
+   pytest -v
+   ```
