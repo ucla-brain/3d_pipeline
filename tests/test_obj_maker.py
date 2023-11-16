@@ -17,7 +17,7 @@ input_path = ('input_dir', [
 
 @pytest.fixture
 def output_directory():
-    pytest.output_directory = "/qnap/ChristianE/output_objs
+    pytest.output_directory = "/qnap/ChristianE/output_objs/"
 
 
 
