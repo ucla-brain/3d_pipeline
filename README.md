@@ -97,5 +97,5 @@ Important: Python (and Pytest) must use Python version 3.6 and above.
 
 3. Run tests
    ```sh
-   pytest -v
+   pytest -s
    ```
