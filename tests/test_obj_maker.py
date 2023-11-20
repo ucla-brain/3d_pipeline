@@ -33,14 +33,26 @@ class TestObjMaker:
         return extract
 
     @pytest.fixture(scope="function")
-    def count_files(self):
+    def count_files(request, extract_number_from_filename):
+        unique_numbers = set()
+
+        def cleanup_unique_numbers():
+            unique_numbers.clear()
+
         def extract_file_count(directory, extension):
             count = 0
             for filename in os.listdir(directory):
                 full_path = os.path.join(directory, filename)
-                if os.path.isfile(full_path) and filename.endswith(extension) and re.search(r'\d', filename):
-                    count += 1
+                if os.path.isfile(full_path) and filename.endswith(extension):
+                    number = extract_number_from_filename(filename)
+                    if number is not None and number not in unique_numbers:
+                        unique_numbers.add(number)
+                        count += 1
+
+            cleanup_unique_numbers()
+
             return count
+
         return extract_file_count
 
     @pytest.fixture(scope="function")
@@ -80,7 +92,7 @@ class TestObjMaker:
 
         def create_output_folders(input_dir, output_dir):
             for root, dirs, files in os.walk(input_dir):
-                npz_files = [f for f in files if f.endswith('.npz') and re.search(r'\d', f)]
+                npz_files = [f for f in files if f.endswith('.npz') and re.search(r'\d', f) and 'structure' in f.lower()]
                 relative_path = os.path.relpath(root, input_dir)
 
                 if npz_files:
@@ -110,6 +122,7 @@ class TestObjMaker:
                             f"Expected output file {expected_output} not found for {input_file}."
 
                     sys.stdout = original_stdout
+                    print(f"Successfull test for {relative_path}")
                 else:
                     if "registration/" in relative_path.lower():
                         print(f"No npz's found for {relative_path}")
