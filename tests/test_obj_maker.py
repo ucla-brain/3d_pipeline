@@ -1,13 +1,8 @@
 #! /usr/bin/env python
 from obj_maker import create_obj_files
-import numpy as np
 import pytest
-import tempfile
-import shutil
 import re
 import os
-import sys
-from io import StringIO
 
 # Update input(s) and output path below as needed
 
@@ -15,10 +10,8 @@ input_path = ('input_dir', [
     "/qnap/3D_stitched_LS/"
 ])
 
-@pytest.fixture
-def output_directory():
-    pytest.output_directory = "/qnap/ChristianE/output_objs/"
-
+# OUTPUT_DIRECTORY = "/qnap/ChristianE/output_objs/"
+OUTPUT_DIRECTORY = "/qnap/Seita/output_objs/"
 
 
 class TestObjMaker:
@@ -69,26 +62,14 @@ class TestObjMaker:
         return clean_contents
 
 
+    @pytest.mark.parametrize(*input_path)
+    def test_create_obj_files(self, input_dir, extract_number_from_filename, count_files,  clean_output_directory):
 
-    @pytest.fixture
-    def validate_paths(self, request, input_dir, output_directory):
-        output_dir = pytest.output_directory
         if not os.path.exists(input_dir):
             assert False, f"Input directory does not exist, skipping test. Invalid directory: {input_dir}"
 
-        if not os.path.exists(output_dir):
-            os.makedirs(output_dir)
-    
-
-
-
-    @pytest.mark.parametrize(*input_path)
-    def test_create_obj_files(self, capsys, input_dir, extract_number_from_filename, count_files,  clean_output_directory, output_directory, validate_paths):
-
-        output_dir = pytest.output_directory
-        
-        if not (os.path.exists(input_dir) and os.path.exists(output_dir)):
-            validate_paths(input_dir, output_dir)
+        if not os.path.exists(OUTPUT_DIRECTORY):
+            os.makedirs(OUTPUT_DIRECTORY)
 
         def create_output_folders(input_dir, output_dir):
             for root, dirs, files in os.walk(input_dir):
@@ -96,15 +77,11 @@ class TestObjMaker:
                 relative_path = os.path.relpath(root, input_dir)
 
                 if npz_files:
-                    original_stdout = sys.stdout
-                    fake_stdout = StringIO()
-                    sys.stdout = fake_stdout
 
                     output_path = os.path.join(output_dir, relative_path)
                     os.makedirs(output_path, exist_ok=True)
                     output_path = clean_output_directory(output_path)
                     create_obj_files(root, output_path, npz_files, 1, None, None, False)
-                    captured_output = fake_stdout.getvalue()
 
                     npz_count = count_files(root, '.npz')
                     obj_count = count_files(output_path, '.obj')
@@ -121,10 +98,9 @@ class TestObjMaker:
                         assert os.path.exists(os.path.join(output_path, expected_output)), \
                             f"Expected output file {expected_output} not found for {input_file}."
 
-                    sys.stdout = original_stdout
                     print(f"Successfull test for {relative_path}")
                 else:
                     if "registration/" in relative_path.lower():
-                        print(f"No npz's found for {relative_path}")
+                        print(f"No npz files found for {relative_path}")
 
-        create_output_folders(input_dir, output_dir)
+        create_output_folders(input_dir, OUTPUT_DIRECTORY)

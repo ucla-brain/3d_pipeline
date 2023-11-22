@@ -29,7 +29,7 @@ def create_obj_files(input_folder, output_folder, file_list, scale, translation=
 
     start_time = time.time()
     generated_obj_files = []
-    for file_name in tqdm(file_list, desc="Create OBJ files"):
+    for file_name in tqdm(file_list, desc=f"Create OBJ files from {input_folder} and generating under {output_folder}"):
 
         input_file = os.path.join(input_folder, file_name)
 
@@ -39,12 +39,14 @@ def create_obj_files(input_folder, output_folder, file_list, scale, translation=
             if part.isdigit():
                 structure_num = int(part)
                 break
-        if structure_num == None:
-            print("No match found.")
-        else:
-            print(structure_num)
+        if verbose:
+            if structure_num == None:
+                print("No match found.")
+            else:
+                print(structure_num)
 
-        print(f'Rename for {file_name} using {structure_num} for conversion...')
+        if verbose:
+            print(f'Rename for {file_name} using {structure_num} for conversion...')
         output_filename = str(structure_num)+'.obj'
         output_file = os.path.join(output_folder, output_filename)
         generated_obj_files.append(output_file)
