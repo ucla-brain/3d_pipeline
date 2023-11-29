@@ -72,6 +72,7 @@ class TestObjMaker:
             os.makedirs(OUTPUT_DIRECTORY)
 
         def create_output_folders(input_dir, output_dir):
+            no_npzs_folders = []
             for root, dirs, files in os.walk(input_dir):
                 npz_files = [f for f in files if f.endswith('.npz') and re.search(r'\d', f) and 'structure' in f.lower()]
                 relative_path = os.path.relpath(root, input_dir)
@@ -101,6 +102,11 @@ class TestObjMaker:
                     print(f"Successfull test for {relative_path}")
                 else:
                     if "registration/" in relative_path.lower():
-                        print(f"No npz files found for {relative_path}")
+                        # print(f"No npz files found for {relative_path}")
+                        no_npzs_folders.append(relative_path)
 
-        create_output_folders(input_dir, OUTPUT_DIRECTORY)
+        no_npz_folders = create_output_folders(input_dir, OUTPUT_DIRECTORY)
+        
+        print(f"No npz files found for ....................")        
+        for path in no_npz_folders:
+            print(f"{path}")
