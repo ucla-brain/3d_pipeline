@@ -105,8 +105,8 @@ class TestObjMaker:
                         # print(f"No npz files found for {relative_path}")
                         no_npzs_folders.append(relative_path)
 
-        no_npz_folders = create_output_folders(input_dir, OUTPUT_DIRECTORY)
-        
-        print(f"No npz files found for ....................")        
-        for path in no_npz_folders:
-            print(f"{path}")
+            print(f"No npz files found for ....................")        
+            for path in no_npzs_folders:
+                print(f"{path}")
+
+        create_output_folders(input_dir, OUTPUT_DIRECTORY)
