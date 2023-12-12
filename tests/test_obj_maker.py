@@ -7,7 +7,8 @@ import os
 # Update input(s) and output path below as needed
 
 input_path = ('input_dir', [
-    "/qnap/3D_stitched_LS/"
+    "/qnap/3D_stitched_LS/",
+    "/qnap2/3D_stitched_LS/"
 ])
 
 # OUTPUT_DIRECTORY = "/qnap/ChristianE/output_objs/"
