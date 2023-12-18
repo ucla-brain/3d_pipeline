@@ -100,11 +100,11 @@ class TestObjMaker:
                         assert os.path.exists(os.path.join(output_path, expected_output)), \
                             f"Expected output file {expected_output} not found for {input_file}."
 
-                    print(f"Successfull test for {relative_path}")
+                    print(f"Successfull test for {output_path}")
                 else:
                     if "registration/" in relative_path.lower():
                         # print(f"No npz files found for {relative_path}")
-                        no_npzs_folders.append(relative_path)
+                        no_npzs_folders.append(output_path)
 
             print(f"No npz files found for ....................")        
             for path in no_npzs_folders:
