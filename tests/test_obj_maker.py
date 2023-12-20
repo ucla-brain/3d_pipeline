@@ -11,7 +11,6 @@ input_path = ('input_dir', [
     "/qnap2/3D_stitched_LS/"
 ])
 
-# OUTPUT_DIRECTORY = "/qnap/ChristianE/output_objs/"
 OUTPUT_DIRECTORY = "/qnap/Seita/output_objs/"
 
 
@@ -78,11 +77,13 @@ class TestObjMaker:
                 npz_files = [f for f in files if f.endswith('.npz') and re.search(r'\d', f) and 'structure' in f.lower()]
                 relative_path = os.path.relpath(root, input_dir)
 
+                output_path = os.path.join(output_dir, relative_path)
+                
                 if npz_files:
 
-                    output_path = os.path.join(output_dir, relative_path)
                     os.makedirs(output_path, exist_ok=True)
                     output_path = clean_output_directory(output_path)
+
                     create_obj_files(root, output_path, npz_files, 1, None, None, False)
 
                     npz_count = count_files(root, '.npz')
@@ -103,11 +104,16 @@ class TestObjMaker:
                     print(f"Successfull test for {output_path}")
                 else:
                     if "registration/" in relative_path.lower():
-                        # print(f"No npz files found for {relative_path}")
-                        no_npzs_folders.append(output_path)
+                        empty_dirs = {
+                            "input": relative_path,
+                            "output": output_path
+                        }
+                        no_npzs_folders.append(empty_dirs)
 
             print(f"No npz files found for ....................")        
-            for path in no_npzs_folders:
-                print(f"{path}")
+            for directory in no_npzs_folders:
+                print(f"Source Path: {directory['input']}")
+                # print(f"Destination Path: {directory['output']}")
+
 
         create_output_folders(input_dir, OUTPUT_DIRECTORY)
