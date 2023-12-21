@@ -105,7 +105,7 @@ class TestObjMaker:
                 else:
                     if "registration/" in relative_path.lower():
                         empty_dirs = {
-                            "input": relative_path,
+                            "input": root,
                             "output": output_path
                         }
                         no_npzs_folders.append(empty_dirs)
