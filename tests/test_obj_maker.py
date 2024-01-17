@@ -112,8 +112,9 @@ class TestObjMaker:
 
             print(f"No npz files found for ....................")        
             for directory in no_npzs_folders:
-                print(f"Source Path: {directory['input']}")
-                # print(f"Destination Path: {directory['output']}")
-
+                path = {directory['input']}
+                if '/QC' not in path:
+                    print(f"Source Path: {path}")
+                    # print(f"Destination Path: {directory['output']}")
 
         create_output_folders(input_dir, OUTPUT_DIRECTORY)
