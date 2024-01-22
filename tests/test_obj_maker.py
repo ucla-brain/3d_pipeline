@@ -11,7 +11,7 @@ input_path = ('input_dir', [
     "/qnap2/3D_stitched_LS/"
 ])
 
-OUTPUT_DIRECTORY = "/qnap/Seita/output_objs/"
+OUTPUT_DIRECTORY = "/qnap2/output_objs/"
 
 
 class TestObjMaker:
@@ -113,7 +113,7 @@ class TestObjMaker:
             print(f"No npz files found for ....................")        
             for directory in no_npzs_folders:
                 path = {directory['input']}
-                if '/QC' not in path:
+                if 'QC' not in path:
                     print(f"Source Path: {path}")
                     # print(f"Destination Path: {directory['output']}")
 
