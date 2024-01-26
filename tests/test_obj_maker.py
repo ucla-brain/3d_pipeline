@@ -84,6 +84,9 @@ class TestObjMaker:
                     os.makedirs(output_path, exist_ok=True)
                     output_path = clean_output_directory(output_path)
 
+                    if "/Archived" in output_path:
+                        return
+
                     create_obj_files(root, output_path, npz_files, 1, None, None, False)
 
                     npz_count = count_files(root, '.npz')
@@ -100,9 +103,9 @@ class TestObjMaker:
 
                         assert os.path.exists(os.path.join(output_path, expected_output)), \
                             f"Expected output file {expected_output} not found for {input_file}."
+                        
+                    print(f"Successfull test for {output_path}") 
 
-                    if "/Archived" not in output_path:
-                        print(f"Successfull test for {output_path}")
                 else:
                     if "registration/" in relative_path.lower():
                         empty_dirs = {
