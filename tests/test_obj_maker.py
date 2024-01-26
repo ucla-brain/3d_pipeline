@@ -101,7 +101,8 @@ class TestObjMaker:
                         assert os.path.exists(os.path.join(output_path, expected_output)), \
                             f"Expected output file {expected_output} not found for {input_file}."
 
-                    print(f"Successfull test for {output_path}")
+                    if "/Archived" not in output_path:
+                        print(f"Successfull test for {output_path}")
                 else:
                     if "registration/" in relative_path.lower():
                         empty_dirs = {
@@ -110,11 +111,11 @@ class TestObjMaker:
                         }
                         no_npzs_folders.append(empty_dirs)
 
-            print(f"No npz files found for ....................")        
-            for directory in no_npzs_folders:
-                path = {directory['input']}
-                if 'QC' not in path:
-                    print(f"Source Path: {path}")
+            #print(f"No npz files found for ....................")        
+            #for directory in no_npzs_folders:
+            #    path = {directory['input']}
+            #    if "/QC" not in path:
+            #        print(f"Source Path: {path}")
                     # print(f"Destination Path: {directory['output']}")
 
         create_output_folders(input_dir, OUTPUT_DIRECTORY)
