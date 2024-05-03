@@ -1,32 +1,6 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-
-# meeting notes on april 24, 2024
-# Luis pasted his current file
-# Luis, can you paste your whole previous py file here?
-# 3d_pipeline.py
-# note, daniel usually uses "sphinx" with "napoleon"
-# for documentating code: https://www.sphinx-doc.org/en/master/usage/extensions/napoleon.html
-# NOTE THIS FMOST ATLAS IS 10 UM, this is hard coded because it's not described anywhere in the tif file
-# NOTE about weighted image mathing for lightsheet.  the weights data['w'] did not end up being useful.  We will set all weights to 1.
-# NOTE when generating figures, minval, maxval parameters are hard coded and are used to map
-# grayscale images to 0,1.  These might need to be changed for new data.
-# NOTE in preprocess atlas, there was an error where xI was not updating itself in the loop
-# NOTE atlas and target orientation are different for this example
-# the initial affine transform function can input three leter strings (e.g. "RAS") to set atlas and
-# target orientation
-# NOTE the main work we want to do is in "register" and "run_registration"
-# NOTE Sumit wanted some speciic outputs, and did not want many of the of the outputs we
-# had produced previously.  Today we will generate Sumit's outputs.  Luis will decide what to do with the others
-# potentially just comment them out.
-# NOTE this code makes some copies that are unnecessary. J, J0, J_.  We can probably remove these, but have to be careful about it.
-# if you're not worried about memory we don't have to do anything.
-# let's say for today, we'll not worry about.  If you run into memory problems,
-# we can look at removing these copies next time.  Or Luis can try if he wants.
-# NOTE in run registration I am removing the resolution input argument
-# we will just assume 10,10,10 for atlas and target both.
-
 import argparse
 import pathlib
 import numpy as np
@@ -37,87 +11,32 @@ from datetime import datetime
 import pandas as pd
 from skimage.measure import marching_cubes
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection
-import tifffile # needed to load the fmost atlas labels
-import torch # so we can specify to use the torch.float32 data type
-import sys
-
 import emlddmm
 
 FIG_OPTIONS = {'dpi': 300, 'format': 'jpg'}
 
 def get_target(data):
-    '''
-    This function loads a target image from our npz data file.
-    It extracts it from the dictionary, casts it to float32
-    and normalizes it.
-
-    Parameters
-    ----------
-    data : dictionary
-        dictionary loaded from an npz file.  It should have the field 'I'
-
-    Returns
-    -------
-    target :  numpy array
-        The image data in a  1 x slice  x row x col nupmy array
-
-    '''
     target = data['I'][None]
     target = target.astype(np.float32)
     target /= np.mean(np.abs(target))
     return target
 
 def get_atlas(atlases):
-    '''
-    Load atlases from a list of filenames.
-
-    For FMOST, we will only load one atlas which is a tif file.
-
-    But the code will still support the Allen atlas, which
-    Daniel has saved as .vtk files.
-
-    Parameters
-    ----------
-    atlases : list of strings
-        A list of strings of filenames, either .vtk or .tif to load an atlas image
-
-    Returns
-    -------
-    I : numpy array
-        A natlases x slices x rows x cols numpy array storing imaging data
-    xI : list of numpy array
-        Location of the pixels in the slice, row, col dimensions (generally interpretted as z,y,x)
-    '''
     I = []
     for atlas_name in atlases:
-        if str(atlas_name).endswith('.vtk'):
-            xI,I_,title,names = emlddmm.read_data(atlas_name)
-            I_ = I_.astype(np.float32)
-            I_ /= np.mean(np.abs(I_))
-        elif str(atlas_name).endswith('.tif'):
-            I_ = tifffile.imread(atlas_name)
-            # NOTE THIS FMOST ATLAS IS 10 UM
-            ATLAS_RESOLUTION = 10.0
-            xI = [np.arange(n)*ATLAS_RESOLUTION - (n-1)*ATLAS_RESOLUTION/2 for n in I_.shape]
-            if I_.ndim == 3:
-                I_ = I_[None]
+        xI, I_, _, _ = emlddmm.read_data(atlas_name)
+        I_ = I_.astype(np.float32)
+        I_ /= np.mean(np.abs(I_))
         I.append(I_)
-    I = np.concatenate(I) # need to comment this out for fmost
+
+    I = np.concatenate(I)
     return I, xI
 
 def get_seg_atlas(seg):
-    ''' We probably will not use this function for FMOST
-    becuase we don't have a grayscale image, we only have a segmenttion which is loaded above.
-    '''
     xS, S, _, _ = emlddmm.read_data(seg)
     return S, xS
 
 def get_RGB(seg):
-    '''
-    Convert an image full of integer labels, to an RGB image with random colors
-
-    This is for visualization.
-    '''
     labels,inds = np.unique(seg,return_inverse=True)
 
     colors = np.random.rand(len(labels),3)
@@ -126,24 +45,9 @@ def get_RGB(seg):
     return colors[inds].reshape(seg.shape[1],seg.shape[2],seg.shape[3],3).transpose(-1,0,1,2)
 
 def get_voxel_spacing(data):
-    '''
-    Parameters
-    ----------
-    data : dictionary
-        Dictionary loaded from an npz file with a field 'xI' storing voxel locations
-
-    Returns
-    -------
-    data['xI'] : list of numpy arrays
-        Voxel locations in the slice, row, col dimensions.  usually units of microns
-    '''
     return data['xI']
 
 def get_w(data, image):
-    ''' Get weights from npz file.
-    For our lightsheet images, these tend to be really bad.
-    For FMOST, I will just set the weights to 1.
-    '''
     if 'w' in data:
         return data['w']
     elif 'W' in data:
@@ -152,9 +56,6 @@ def get_w(data, image):
         return (image[0]>0).astype(float)
 
 def get_origin(vox_data):
-    '''
-    Input a list of voxel locations (slice, row, col), and output the first element .
-    '''
     return np.array([vox_data[0][0], vox_data[1][0], vox_data[2][0]])
 
 def save_metadata(target, segmentation, outpath, affine):
@@ -172,11 +73,6 @@ def save_figure(figure, name, outpath="", title=""):
     plt.close()
 
 def generate_atlas_space_figure(I, S, RGB, Jt, outdir):
-    '''
-    Daniel wants to leave this as is, but these minval, maxval parameters
-    are used to normalize contrast.   They may not work well for new datasets.
-    We may need to modify them.
-    '''
     # view the transformed target with labels
     minval = 1.5
     maxval = 2.9
@@ -256,11 +152,6 @@ def generate_atlas_space_figure(I, S, RGB, Jt, outdir):
     fig.savefig(os.path.join(outdir, 'atlas_space.jpg'), **FIG_OPTIONS)
 
 def generate_target_space_figure(J, RGBt, St, outdir):
-    '''
-    Daniel wants to leave this as is, but these minval, maxval parameters
-    are used to normalize contrast.   They may not work well for new datasets.
-    We may need to modify them.
-    '''
     minval = 1.5
     maxval = 2.9
     minval = 0.0
@@ -340,15 +231,11 @@ def generate_target_space_figure(J, RGBt, St, outdir):
     fig.savefig(os.path.join(outdir, 'target_space.jpg'), **FIG_OPTIONS)
 
 def preprocess_target(target, W):
-    ''' for lightsheet to fmost, Daniel used a simpler preprocessing
-    '''
     # background
-    #processed_target = target - np.quantile(target[W[None]>0.9],0.1)
-    #processed_target[processed_target<0] = 0
+    processed_target = target - np.quantile(target[W[None]>0.9],0.1)
+    processed_target[processed_target<0] = 0
     # adjust dynamic range
-    #processed_target = processed_target**0.25
-    Jpower = 1/8
-    processed_target = target ** Jpower
+    processed_target = processed_target**0.25
     # adjust mean value
     processed_target /= np.mean(np.abs(processed_target))
 
@@ -356,185 +243,95 @@ def preprocess_target(target, W):
 
 def preprocess_atlas(atlas, dI,  xI0):
     # since downsample by 4, pad with 4x4x4
-    # at higher resolution we will do more padding
-    npad = 16
+    npad = 4
     I = np.pad(atlas, ((0,0),(npad,npad),(npad,npad),(npad,npad)) )
     for _ in range(npad):
         xI0 = [np.concatenate((x[0][None] - d, x, x[-1][None] + d)) for d, x in zip(dI,xI0)]
 
     # adjust nissl image dynamic range
-    #I[0] = I[0]**0.5
-    #I[0] /= np.mean(np.abs(I[0]))
-    #I[1] /= np.mean(np.abs(I[1]))
-
-    # normalization is not necessary anymore, since we are working with a label image directly
+    I[0] = I[0]**0.5
+    I[0] /= np.mean(np.abs(I[0]))
+    I[1] /= np.mean(np.abs(I[1]))
 
     return I, xI0
 
-def get_initial_affine(A0, XJ, atlas_orientation='PIR', target_orientation='SAL'):
-    '''
-    We added optional input arguments in case the orientation is not the same as our test case
-    '''
+def get_initial_affine(A0, XJ):
     if A0 == None:
         A0 = np.eye(4)
-
-        # these letters are commonly used in human MRI
-        L0 = emlddmm.orientation_to_orientation(atlas_orientation,target_orientation)
-        A0[:3,:3] = L0
         A0[:3,-1] = np.mean(XJ,axis=(-1,-2,-3))
-
     else:
         A0 = np.fromstring(A0,sep=',').reshape(4,4)
 
     return A0
 
-def run_registration(J, xJ, I, xI, W, A0, dI, device):
-
-    # start at the lowest scale with only linear transform
+def run_registration(J, xJ, I, xI, W, A0, dI, device, resolution):
     config0 = {
         'device':device,
-        'dtype':torch.float32, # try single
-        'n_iter':200, 'downI':[20,20,20], 'downJ':[20,20,20], # start at 200 microns
+        'n_iter':200, 'downI':[8, 8, 8], 'downJ':[8, 8, 8],
         'priors':[0.9,0.05,0.05],'update_priors':False,
         'update_muA':0,'muA':[np.quantile(J,0.99)],
-        'update_muB':0,'muB':[np.quantile(J,0.01)],
+        'update_muB':0,'muB':[0.0],
         'update_sigmaM':0,'update_sigmaA':0,'update_sigmaB':0,
+        'sigmaM':0.25,'sigmaB':0.5,'sigmaA':1.25,
         'order':1,'n_draw':50,'n_estep':3,'slice_matching':0,'v_start':1000,
         'eA':5e4,'A':A0,'full_outputs':True,
-        'dv':1000.0, # set dv really big here since I'm not using it
-   }
+    }
 
-    config0['sigmaM'] = 2.0
-    config0['sigmaB'] = 4.0
-    config0['sigmaA'] = 8.0
-    # let's downsample first, this can help with memory
-    config0['downI'] = [1,1,1]
-    config0['downJ'] = [1,1,1]
-    xId,Id = emlddmm.downsample_image_domain(xI,I,[20,20,20])
-    xJd,Jd,Wd = emlddmm.downsample_image_domain(xJ,J,[20,20,20],W=W)
+    if resolution == 50:
+        config0['downI'] = [4, 4, 4]
+        config0['downJ'] = [4, 4, 4]
 
-    # free up any possibly memory
-    #import gc
-    #import time
-    #gc.collect()
-    #time.sleep(1)
-    #gc.collect()
-    out = emlddmm.emlddmm(xI=xId,I=Id,xJ=xJd,J=Jd, W0=Wd, **config0)
+    # update my sigmas (august 22)
+    config0['sigmaM'] = 1.0
+    config0['sigmaB'] = 2.0
+    config0['sigmaA'] = 5.0
+    I_ = np.stack((I[0]-np.mean(I[0]),I[1]-np.mean(I[1]),
+                (I[0]-np.mean(I[0]))**2,
+                (I[0]-np.mean(I[0]))*(I[1]-np.mean(I[1])),
+                (I[1]-np.mean(I[0]))**2,))
 
-    #out.pop('WM')
-    #out.pop('WA')
-    #out.pop('WB')
-    #out.pop('W0')
-    #out.pop('coeffs')
-    #import gc
-    #gc.collect()
-    #time.sleep(1)
-    #gc.collect()
-
-
+    out = emlddmm.emlddmm(xI=xI,I=I_,xJ=xJ,J=J, W0=W, **config0)
 
     # second run, with deformation
-    # use the same resolution, but with deformation
     config1 = dict(config0)
     config1['A'] = out['A']
     config1['eA'] = config0['eA']*0.1
     config1['a'] = 1000.0
-
+    config1['sigmaR'] = 5e4 # 1e4 gave really good results, but try 2e4, also good, I showed this in my slides
     config1['n_iter']= 2000
     config1['v_start'] = 0
     config1['ev'] = 1e-2
     config1['ev'] = 2e-3 # reduce since I decreased sigma
-    config1['dv'] = 1000.0
+    config1['v_res_factor'] = config1['a']/dI[0]/4 # what is the resolution of v, as a multiple of that in I
     config1['local_contrast'] = [16,16,16]
-    config1['sigmaR'] = 1e4 # this looks pretty good
 
-    # use the same resolution as previous cell
-    #gc.collect()
-    #time.sleep(1)
-    #gc.collect()
-    out1 = emlddmm.emlddmm(xI=xId,I=Id,xJ=xJd,J=Jd, W0=Wd, **config1)
-    # delete some things I don't need
-    #out1.pop('WM')
-    #out1.pop('WA')
-    #out1.pop('WB')
-    #out1.pop('W0')
-    #out1.pop('coeffs')
-    #gc.collect()
-    #time.sleep(1)
-    #gc.collect()
+    if resolution == 50:
+        config1['v_res_factor'] = config1['a']/dI[0]/2
+
+    I_ = np.stack((I[0]-np.mean(I[0]),I[1]-np.mean(I[1]),
+                (I[0]-np.mean(I[0]))**2,
+                (I[0]-np.mean(I[0]))*(I[1]-np.mean(I[1])),
+                (I[1]-np.mean(I[0]))**2,))
 
 
-    # third run, with deformation and higher resolution
+    out1 = emlddmm.emlddmm(xI=xI,I=I_,xJ=xJ,J=J, W0=W, **config1)
+
+    # on the next run we do les downsampling
     config2 = dict(config1)
     config2['A'] = out1['A']
     config2['n_iter']= 1000
     config2['v'] = out1['v']
+    config2['downI'] = [4, 4, 4]
+    config2['downJ'] = [4, 4, 4]
 
-    # now go to 100 microns
-    xId,Id = emlddmm.downsample_image_domain(xI,I,[10,10,10])
-    xJd,Jd,Wd = emlddmm.downsample_image_domain(xJ,J,[10,10,10],W=W)
-
-
-    # free up any possible memory
-    #import gc
-    #import time
-    #gc.collect()
-    #time.sleep(1)
-    #gc.collect()
-    out2 = emlddmm.emlddmm(xI=xId,I=Id,xJ=xJd,J=Jd, W0=Wd, **config2)
-    # delete some things I don't need
-    #out2.pop('WM')
-    #out2.pop('WA')
-    #out2.pop('WB')
-    #out2.pop('W0')
-    #out2.pop('coeffs')
-    #gc.collect()
-    #time.sleep(1)
-    #gc.collect()
-
-
-    # again at a higher resolution
-    # add one more spatial scale, 50um
-    # on the next run we do les downsampling
-    config3 = dict(config2)
-    config3['A'] = out2['A']
-    config3['v'] = out2['v']
-    # a small number of iterations with a smaller step size to finish up
-    config3['n_iter'] = 100
-    config3['eA'] = config3['eA']/4
-    config3['ev'] = config3['ev']/4
-
-    # now go to 50 microns
-    xId,Id = emlddmm.downsample_image_domain(xI,I,[5,5,5])
-    xJd,Jd,Wd = emlddmm.downsample_image_domain(xJ,J,[5,5,5],W=W)
-
-
-    # free up any possibly memory
-    #import gc
-    #import time
-    #gc.collect()
-    #time.sleep(1)
-    #gc.collect()
-
+    if resolution == 50:
+        config2['downJ'] = [2, 2, 2]
+        config2['downI'] = [2, 2, 2]
 
     # there seems to be an issue with the initial velocity
     # when I run this twice, I'm reusing it
-    out3 = emlddmm.emlddmm(xI=xId,I=Id,xJ=xJd,J=Jd, W0=Wd, **config3)
     # the matching energy here is way way lower, why would that be?
-
-    # delete some things I don't need
-    # out3.pop('WM')
-    # out3.pop('WA')
-    # out3.pop('WB')
-    # out3.pop('W0')
-    # out3.pop('coeffs')
-    # gc.collect()
-    # time.sleep(1)
-    # gc.collect()
-
-    return out3
-
-
+    return emlddmm.emlddmm(xI=xI,I=I_,xJ=xJ,J=J, W0=W, **config2)
 
 def generate_error_figure(fig, outdir):
     axs = fig.get_axes()
@@ -677,39 +474,41 @@ def register():
 
     parser.add_argument("target_name",type=pathlib.Path,help="Name of the file to be registered")
     parser.add_argument("output_prefix",type=pathlib.Path,help="Location of the output file(s)")
+    parser.add_argument("seg_name",type=pathlib.Path,help="Location of segmentation file")
     parser.add_argument("savename",type=pathlib.Path,help="Name of file once it is saved")
-    parser.add_argument("atlas_names",type=pathlib.Path,help="Location of the atlas images")
-    parser.add_argument("-v","--ventricle",type=pathlib.Path,default=None,help="Location of the ventricle opening npz file")
+    parser.add_argument("atlas_names",type=pathlib.Path,nargs='+',help="Location of the atlas images")
     parser.add_argument("-on", "--onto_name", default=None, help="Location of atlas ontology")
     parser.add_argument("-d","--device",default='cuda:0',help="Device used for pytorch")
     parser.add_argument("-a","--A0",type=str,default=None,help="Affine transformation (Squeezed to 16x1 + Sep by ',')")
+    parser.add_argument("-res","--resolution", type=np.float32, choices=[20.0, 50.0], default=20, help="Resoultion used during downsampling")
     parser.add_argument("-j","--jpg", action="store_true", help="Generate 3d jpegs for each structure")
 
     args = parser.parse_args()
 
     target_name   = args.target_name
     output_prefix = args.output_prefix
-    atlas_name    = args.atlas_names
-    ventricle_map = args.ventricle
+    atlas_names   = args.atlas_names
+    seg_name      = args.seg_name
     savename      = args.savename
     ontology_name = args.onto_name
+    resolution    = args.resolution
     jpg           = args.jpg
     device        = args.device
     A0            = args.A0
 
-
     # Validations
     assert os.path.isfile(target_name), f"Downsample file was not found: {target_name}"
-    assert os.path.isfile(atlas_name), f"Atlas image file was not found: {atlas_name}"
+    assert os.path.isfile(seg_name), f"Atlas segmentation file was not found: {seg_name}"
+    assert os.path.isfile(atlas_names[0]), f"Atlas image file was not found: {atlas_names[0]}"
+    assert os.path.isfile(atlas_names[1]), f"Atlas image file was not found: {atlas_names[1]}"
     assert os.path.isfile(ontology_name), f"Atlas ontology file was not found: {ontology_name}"
     if not os.path.exists(pathlib.Path(output_prefix)):
         os.mkdir(output_prefix)
     assert os.path.isdir(output_prefix), f"Output directory does not exist: {output_prefix}"
-    downshow = 16
 
     # Record metadata
     print("Recording metadata")
-    save_metadata(target_name, atlas_name, output_prefix, 'None')
+    save_metadata(target_name, seg_name, output_prefix, A0)
 
     #####################
     ## LOADING IMAGES
@@ -723,24 +522,27 @@ def register():
     # get voxel spacing variable
     xJ = get_voxel_spacing(target_data)
     # make copy of target
-    J0 = np.copy(J) # we probably don't need this copy, but if you're not worried about memory it's fine
+    J0 = np.copy(J)
     # get W variable
     W = get_w(target_data, image=J)
-    # on april 24, 2024 daniel says we should just set W to 1 (i.e. unweighted image registration)
-    W = W*0.0 + 1.0
 
     # Save downsample image figure
     fig, _ = emlddmm.draw(J,xJ,vmin=np.min(J[W[None]>0.9]))
     save_figure(fig, "downsample", title='Downsampled lightsheet data', outpath=output_prefix)
+
     print("Loading atlas")
-    I, xI = get_atlas([atlas_name])
+    I, xI = get_atlas(atlas_names)
 
     dI = [x[1] - x[0] for x in xI]
     xI0 = [ np.copy(x)for x in xI]
     I0 = np.copy(I)
-    # this copy is used for visualization after registration.
-    # if it's too much memory, we can just load it again later rather than making a copy
+
     print("Loading and transforming segmentation atlas")
+    # next is to transforom the high resolution data
+    S, xS = get_seg_atlas(seg_name)
+    # we want to visuze the above with S
+    RGB = get_RGB(seg=S)
+
     ##########################
     ## PREPROCESSING
 
@@ -754,30 +556,6 @@ def register():
 
     # Atlas preprocessing
     I, xI = preprocess_atlas(atlas=I0, dI=dI, xI0=xI0)
-    # in our work we have assigned random colors to each label
-    labels,inds = np.unique(I.ravel(),return_inverse=True)
-    np.random.seed(1) # for reproducibility
-    d = 3
-    colors = np.random.rand(len(labels),d).astype(np.float32)
-    colors[0] = 0
-    I = colors[inds].reshape(I.shape[1:]+(d,)).transpose(-1,0,1,2)
-    # NOTE we have converted our atlas to an RGB image wiht random colors that will be used for reistration
-
-    # Load the ventricle opening map and apply it to our atlas
-    # this will open the ventricles
-    if ventricle_map is not None:
-        data = np.load(ventricle_map,allow_pickle=True)
-        tform = emlddmm.Transform(data['phii'].transpose(-1,0,1,2),domain=data['xv'])
-        I_ = np.zeros_like(I)
-        fig = plt.figure()
-        for i in range(I.shape[1]):
-            if not i%100:
-                print(i)
-                fig,ax = emlddmm.draw(I_[:,::downshow,::downshow,::downshow],[x[::downshow] for x in xI],vmin=0,vmax=1,fig=fig)
-                fig.canvas.draw()
-            tmp = emlddmm.compose_sequence([tform],[xI[0][i], xI[1],xI[2]])
-            I_[:,i] = emlddmm.apply_transform_float(xI,I,tmp)[:,0]
-        I = I_
 
     #####################
     ## REGISTRATION
@@ -795,7 +573,7 @@ def register():
     print("Registering")
     # now we want to register
     out2 = run_registration(J=J, xJ=xJ, I=I, xI=xI, W=W, A0=A0, dI=dI,
-                            device=device) # removed resolution argument
+                            device=device, resolution=resolution)
 
     # Saving registration output
     np.save(os.path.join(output_prefix, savename), np.array([out2],dtype=object))
@@ -806,86 +584,10 @@ def register():
     save_figure(out2['figErr'], name='err.jpg', outpath=output_prefix)
     generate_error_figure(out2['figErr'], outdir=output_prefix)
 
-
-    ##############################
-    ## SUMIT's OUTPUTS
-    # he asked for a voxel to voxel map from atlas to target, and vice versa
-    # with units of voxels (not microns) and origin in the corner
-    dJ = [x[1] - x[0] for x in xJ]
-    data = np.load(ventricle_map,allow_pickle=True)
-    tform_vl = emlddmm.Transform(data['phi'].transpose(-1,0,1,2),domain=data['xv'])
-    tform_v = emlddmm.Transform(out2['v'],'b',domain=out2['xv'])
-    to_microns_target = np.eye(4)
-    to_microns_target[:3,:3] = np.diag(dJ)
-    to_microns_target[:3,-1] = [x[0] for x in xJ]
-    to_microns_atlas = np.eye(4)
-    to_microns_atlas[:3,:3] = np.diag(dI)
-    to_microns_atlas[:3,-1] = [x[0] for x in xI]
-    TFORM = np.zeros((3,)+J.shape[1:],dtype=np.float32)
-    for i in range(J.shape[1]):
-        if not i%100: print(f'{i} of {J.shape[1]-1}')
-
-        tform = emlddmm.compose_sequence(
-            [
-                # we don't need to_microns_target, because we're already in microns
-                emlddmm.Transform(out2['A'],'b'),
-                tform_v,
-                tform_vl,
-                emlddmm.Transform(to_microns_atlas,'b')
-            ],
-            [xJ[0][i],xJ[1],xJ[2]]
-        )
-        TFORM[:,i] = (tform[:,0].to(torch.float32)).numpy()
-
-    np.save(os.path.join(output_prefix,'target_pixel_to_atlas_pixel.npy'), TFORM)
-
-    # now the other direction
-    tform_vl = emlddmm.Transform(data['phii'].transpose(-1,0,1,2),domain=data['xv'])
-    tform_v = emlddmm.Transform(out2['v'],'f',domain=out2['xv'])
-    TFORM = np.zeros((3,)+I.shape[1:],dtype=np.float32)
-    #gc.collect()
-    for i in range(I.shape[1]):
-        if not i%100: print(f'{i} of {I.shape[1]-1}')
-
-        tform = emlddmm.compose_sequence(
-            [
-                # we don't need to_microns_atlas, because we're already in microns
-                tform_vl,
-                tform_v,
-                emlddmm.Transform(out2['A']),
-                emlddmm.Transform(to_microns_target,'b')
-            ],
-            [xI[0][i],xI[1],xI[2]]
-        )
-        TFORM[:,i] = (tform[:,0].to(torch.float32)).numpy()
-    np.save(os.path.join(output_prefix,'atlas_pixel_to_target_pixel.npy'),TFORM)
-
-    print(f"Ended at: {str(datetime.now())}\n")
-    print("Stopping script here")
-    sys.exit(0)
-    assert False, "End of the line.  Review output please"
-
-    # NOTE: Sumit did not ask for any more outputs
-    # Luis and Daniel did not look at anything below here together
-    # we can come back to this later, or you can end the code here.
-    # the figures should be fine, but we will to revisit the structures bounding boxes
-    # and surfaces, because we now have a different ontology.
-    # if this is important, daniel will start working on it.
-
     ##############################
     ## VISUALIZATIONS
 
     print("Generating registration and transformation visualizations")
-
-    ## next is to transforom the high resolution data
-    #S, xS = get_seg_atlas(seg_name)
-    # since our atlas image is already a segmentation we don't use another atlas
-    xS = xI
-    S = I0 # note this is a shallow copy, not using more memory
-    # we want to visuze the above with S
-    RGB = get_RGB(seg=S)
-
-
     # compute transform for atlas and labels
     deformation = emlddmm.Transform(out2['v'],domain=out2['xv'],direction='b')
     affine = emlddmm.Transform(out2['A'],direction='b')
