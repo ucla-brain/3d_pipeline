@@ -157,12 +157,14 @@ def get_origin(vox_data):
     '''
     return np.array([vox_data[0][0], vox_data[1][0], vox_data[2][0]])
 
-def save_metadata(target, segmentation, outpath, affine):
+def save_metadata(target, segmentation, outpath, affine, a_orientation, t_orientation):
     with open(os.path.join(outpath, "registration_metadata.txt"), 'w') as f:
         metadata = f"Date: {str(datetime.now())}\n"
         metadata += f"Downsampled File: {target}\n"
         metadata += f"Segmentation File: {segmentation}\n"
         metadata += f"Initial Affine: {affine}\n"
+        metadata += f"Atlas Orientation: {a_orientation}\n"
+        metadata += f"Target Orientation: {t_orientation}\n"
         f.write(metadata)
 
 def save_figure(figure, name, outpath="", title=""):
@@ -682,6 +684,10 @@ def register():
     parser.add_argument("-v","--ventricle",type=pathlib.Path,default=None,help="Location of the ventricle opening npz file")
     parser.add_argument("-on", "--onto_name", default=None, help="Location of atlas ontology")
     parser.add_argument("-d","--device",default='cuda:0',help="Device used for pytorch")
+    parser.add_argument("-ao","--atlas_orientation",default='PIR',
+                        help="3 letters, one for each image axis: R/L, A/P, S/I")
+    parser.add_argument("-to","--target_orientation",default='SAL',
+                        help="3 letters, one for each image axis: R/L, A/P, S/I")
     parser.add_argument("-a","--A0",type=str,default=None,help="Affine transformation (Squeezed to 16x1 + Sep by ',')")
     parser.add_argument("-j","--jpg", action="store_true", help="Generate 3d jpegs for each structure")
 
@@ -696,6 +702,8 @@ def register():
     jpg           = args.jpg
     device        = args.device
     A0            = args.A0
+    atlas_orient  = args.atlas_orientation
+    target_orient = args.target_orientation
 
 
     # Validations
@@ -784,7 +792,7 @@ def register():
 
     print("Loading initial affine")
     XJ = np.meshgrid(*xJ,indexing='ij')
-    A0 = get_initial_affine(A0=A0, XJ=XJ)
+    A0 = get_initial_affine(A0=A0, XJ=XJ, atlas_orientation=atlas_orient, target_orientation=target_orient)
 
     # Visualize initial transformation
     tform = emlddmm.Transform(A0,direction='b')
