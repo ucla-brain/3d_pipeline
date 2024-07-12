@@ -157,7 +157,7 @@ def get_origin(vox_data):
     '''
     return np.array([vox_data[0][0], vox_data[1][0], vox_data[2][0]])
 
-def save_metadata(target, segmentation, outpath, affine, a_orientation, t_orientation):
+def save_metadata(target, segmentation, outpath, affine, a_orientation, t_orientation, preprocessed):
     with open(os.path.join(outpath, "registration_metadata.txt"), 'w') as f:
         metadata = f"Date: {str(datetime.now())}\n"
         metadata += f"Downsampled File: {target}\n"
@@ -165,6 +165,7 @@ def save_metadata(target, segmentation, outpath, affine, a_orientation, t_orient
         metadata += f"Initial Affine: {affine}\n"
         metadata += f"Atlas Orientation: {a_orientation}\n"
         metadata += f"Target Orientation: {t_orientation}\n"
+        metadata += f"Input Image Preprocessed: {preprocessed}\n"
         f.write(metadata)
 
 def save_figure(figure, name, outpath="", title=""):
@@ -690,6 +691,7 @@ def register():
                         help="3 letters, one for each image axis: R/L, A/P, S/I")
     parser.add_argument("-a","--A0",type=str,default=None,help="Affine transformation (Squeezed to 16x1 + Sep by ',')")
     parser.add_argument("-j","--jpg", action="store_true", help="Generate 3d jpegs for each structure")
+    parser.add_argument("-pp","--preprocessed", action="store_true", help="Specifies if image has been previously preprocessed")
 
     args = parser.parse_args()
 
@@ -704,6 +706,7 @@ def register():
     A0            = args.A0
     atlas_orient  = args.atlas_orientation
     target_orient = args.target_orientation
+    preprocessed  = args.preprocessed
 
 
     # Validations
@@ -717,7 +720,7 @@ def register():
 
     # Record metadata
     print("Recording metadata")
-    save_metadata(target_name, atlas_name, output_prefix, 'None')
+    save_metadata(target_name, atlas_name, output_prefix, 'None', atlas_orient, target_orient, preprocessed)
 
     #####################
     ## LOADING IMAGES
@@ -739,7 +742,8 @@ def register():
 
     # Save downsample image figure
     fig, _ = emlddmm.draw(J,xJ,vmin=np.min(J[W[None]>0.9]))
-    save_figure(fig, "downsample", title='Downsampled lightsheet data', outpath=output_prefix)
+    preprocessed_title = "" if not preprocessed else " (preprocessed)"
+    save_figure(fig, "downsample", title=f'Downsampled lightsheet data{preprocessed_title}', outpath=output_prefix)
     print("Loading atlas")
     I, xI = get_atlas([atlas_name])
 
@@ -754,7 +758,8 @@ def register():
 
     print("Preprocessing target and atlas")
     # Target preprocessing
-    J = preprocess_target(target=J0, W=W)
+    if not preprocessed:
+        J = preprocess_target(target=J0, W=W)
 
     # Save processed target figure
     fig, _ = emlddmm.draw(J,xJ,vmin=0)
