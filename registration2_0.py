@@ -27,6 +27,14 @@
 # NOTE in run registration I am removing the resolution input argument
 # we will just assume 10,10,10 for atlas and target both.
 
+# meeting notes on July 10, 2024
+# we need to change some stuff related to visualizing the ontology
+# note we expect the ontology name to be like ontology_name = 'fmost_allen_ids_ontology.csv'
+# bounding boxes are done
+# we need to change some stuff related to padding with outputs for Samik (done)
+# we need to save a couple extra volumes (done)
+
+
 import argparse
 import pathlib
 import numpy as np
@@ -551,16 +559,21 @@ def generate_error_figure(fig, outdir):
     save_figure(fig, name="err", outpath=outdir)
 
 def get_ontology(ontology_path):
-    parent_column = 7  # 8 for allen, 7 for yongsoo
-    label_column = 0  # 0 for both
-    shortname_column = 2  # 3 for allen, 2 for yongsoo
-    longname_column = 1  # 2 for allen, 1 for yongsoo
-
+    ''' Note, this function replaces the previous function of the same name,
+    as of July 10, 2024.
+    Note that it uses an additional column for gray values
+    '''
+    parent_column = 7
+    label_column = 6
+    shortname_column = 0
+    longname_column = 3
+    gray_column = 2
     ontology = dict()
     with open(ontology_path) as f:
-        csvreader = csv.reader(f, delimiter=',', quotechar='"')
+        csvreader = csv.reader(f,delimiter=',',quotechar='"')
         count = 0
         for row in csvreader:
+            print(row)
             if count == 0:
                 headers = row
                 print(headers)
@@ -568,8 +581,8 @@ def get_ontology(ontology_path):
                 if not row[parent_column]:
                     parent = -1
                 else:
-                    parent = int(row[parent_column])
-                ontology[int(row[label_column])] = (row[shortname_column],row[longname_column],parent)
+                    parent = int(float(row[parent_column]))
+                ontology[int(float(row[label_column]))] = (row[shortname_column],row[longname_column],int(float(row[gray_column])),parent,)
             count += 1
     return ontology
 
@@ -610,6 +623,15 @@ def compute_face_normals(verts,faces,normalize=False):
     return n
 
 def generate_bboxes(xJ, St, descendents_and_self, labels, ontology, outpath):
+    '''This function replaces the one of the same name as of July 10, 2024
+    This will use gray values stored in the new ontology
+    '''
+
+    # make some maps between id's and gray values
+    grays = [ontology[k][-2] for k in ontology]
+    id_from_gray = {ontology[k][-2]:k for k in ontology}
+    gray_from_id = {k:ontology[k][-2] for k in ontology}
+
     bbox = dict()
 
     for l in labels:
@@ -620,13 +642,16 @@ def generate_bboxes(xJ, St, descendents_and_self, labels, ontology, outpath):
         Sl = St == l
 
         # include all the descendents
-        for o in descendents_and_self[l]:
-            Sl = np.logical_or(Sl,St==o)
+        this_id = id_from_gray[l]
+        for o in descendents_and_self[this_id]:
+            g = gray_from_id[o]
+            #Sl = np.logical_or(Sl,St==o)
+            Sl = np.logical_or(Sl,St==g)
 
         bbox2 = xJ[2][np.nonzero(np.sum(Sl,(0,1,2))>0)[0][[0,-1]]]
         bbox1 = xJ[1][np.nonzero(np.sum(Sl,(0,1,3))>0)[0][[0,-1]]]
         bbox0 = xJ[0][np.nonzero(np.sum(Sl,(0,2,3))>0)[0][[0,-1]]]
-        bbox[l] = (bbox2[0],bbox2[1],bbox1[0],bbox1[1],bbox0[0],bbox0[1],ontology[l][0],ontology[l][1])
+        bbox[l] = (bbox2[0],bbox2[1],bbox1[0],bbox1[1],bbox0[0],bbox0[1],ontology[id_from_gray[l]][0],ontology[id_from_gray[l]][1])
 
     df = pd.DataFrame(bbox).T
     bbox_headings = ('x0','x1','y0','y1','z0','z1','short name','long name')
@@ -796,7 +821,7 @@ def register():
     ## REGISTRATION
 
     print("Loading initial affine")
-    XJ = np.meshgrid(*xJ,indexing='ij')
+    XJ = np.stack(np.meshgrid(*xJ,indexing='ij'))
     A0 = get_initial_affine(A0=A0, XJ=XJ, atlas_orientation=atlas_orient, target_orientation=target_orient)
 
     # Visualize initial transformation
@@ -833,7 +858,8 @@ def register():
     to_microns_target[:3,-1] = [x[0] for x in xJ]
     to_microns_atlas = np.eye(4)
     to_microns_atlas[:3,:3] = np.diag(dI)
-    to_microns_atlas[:3,-1] = [x[0] for x in xI]
+    # to_microns_atlas[:3,-1] = [x[0] for x in xI]
+    to_microns_atlas[:3,-1] = [x[0] for x in xI0] # use the UNPADDED voxel locations (July 10, 2024)
     TFORM = np.zeros((3,)+J.shape[1:],dtype=np.float32)
     for i in range(J.shape[1]):
         if not i%100: print(f'{i} of {J.shape[1]-1}')
@@ -873,18 +899,6 @@ def register():
         TFORM[:,i] = (tform[:,0].to(torch.float32)).numpy()
     np.save(os.path.join(output_prefix,'atlas_pixel_to_target_pixel.npy'),TFORM)
 
-    print(f"Ended at: {str(datetime.now())}\n")
-    print("Stopping script here")
-    sys.exit(0)
-    assert False, "End of the line.  Review output please"
-
-    # NOTE: Sumit did not ask for any more outputs
-    # Luis and Daniel did not look at anything below here together
-    # we can come back to this later, or you can end the code here.
-    # the figures should be fine, but we will to revisit the structures bounding boxes
-    # and surfaces, because we now have a different ontology.
-    # if this is important, daniel will start working on it.
-
     ##############################
     ## VISUALIZATIONS
 
@@ -904,13 +918,14 @@ def register():
     affine = emlddmm.Transform(out2['A'],direction='b')
     tform = emlddmm.compose_sequence([affine,deformation],XJ)
 
-    # keeping reference to affine for saving
-    affine_np = affine.data.numpy()
-
     # transform the atlas and labels, notice different domains
     It = emlddmm.apply_transform_float(xI,I,tform).cpu().numpy()
     RGBt = emlddmm.apply_transform_float(xS,RGB,tform).cpu().numpy()
     St = emlddmm.apply_transform_int(xS,S,tform,double=True,padding_mode='zeros').cpu().numpy()
+
+    # this last transform just to resample the labels on the coordinates of the image
+    tform_ = emlddmm.compose_sequence([emlddmm.Transform(np.eye(4))],xI)
+    StI = emlddmm.apply_transform_int(xS,S,tform_,double=True,padding_mode='zeros').cpu().numpy()
 
     fig, _ = emlddmm.draw(np.stack((It[0]*0.5,It[1]*0.5,J0[0]*1.5)),xJ,)
     fig.subplots_adjust(wspace=0,hspace=0,right=1)
@@ -938,17 +953,15 @@ def register():
     fig,ax = emlddmm.draw(Jt,xS,vmin=np.quantile(J_,0.02),vmax=np.quantile(J_,0.98))
     fig.subplots_adjust(wspace=0,hspace=0,right=1)
 
-    np.savez(os.path.join(output_prefix, "affine_and_transform_values"),
-            affine1=affine_np,
-            tform1=tform,
-            affine2=affine.data.numpy(),
-            tform2=tformi)
-
     # Generate atlas space visualization
-    generate_atlas_space_figure(I=I, S=S, RGB=RGB, Jt=Jt, outdir=output_prefix)
+    generate_atlas_space_figure(I=I, S=StI, RGB=np.pad(RGB, ((0,0),(16,16),(16,16),(16,16)) ), Jt=Jt, outdir=output_prefix)
+    # save these volumes (July 10, 2024)
+    np.savez(os.path.join(output_prefix,'atlas_space_data.npz'),Jt=Jt,S=S,xS=np.array(xS,dtype=object))
 
     # Generate target space visualization
     generate_target_space_figure(J=J, RGBt=RGBt, St=St, outdir=output_prefix)
+    # save these volumes (July 10, 2024)
+    np.savez(os.path.join(output_prefix,'target_space_data.npz'),J=J,St=St,xJ=np.array(xJ,dtype=object))
 
     ############################
     ## STRUCTURES
@@ -968,6 +981,11 @@ def register():
                     labels=labels, ontology=ontology, outpath=output_prefix)
 
     # Create marching cube surfaces
+    # make some maps between gray values and ids
+    # make some maps between id's and gray values
+    grays = [ontology[k][-2] for k in ontology]
+    id_from_gray = {ontology[k][-2]:k for k in ontology}
+    gray_from_id = {k:ontology[k][-2] for k in ontology}
 
     oJ = [x[0] for x in xJ]
     dJ = [x[1] - x[0] for x in xJ]
@@ -982,13 +1000,15 @@ def register():
             print('skipping 0')
             continue
 
-        Sl = St == l
+        gray = gray_from_id[l]
+        Sl = St == gray
         count0 = np.sum(Sl)
         # do marching cubes
         print('adding ',end='')
         for o in descendents_and_self[l]:
             print(f'{o},',end='')
-            Sl = np.logical_or(Sl,St==o)
+            gray = gray_from_id[o]
+            Sl = np.logical_or(Sl,St==gray)
         count1 = np.sum(Sl)
         if count0 != count1:
             print(f'Structure {l} shows differences')
