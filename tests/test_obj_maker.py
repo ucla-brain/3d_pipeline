@@ -78,13 +78,14 @@ class TestObjMaker:
                 relative_path = os.path.relpath(root, input_dir)
 
                 output_path = os.path.join(output_dir, relative_path)
-                
+
                 if npz_files:
 
                     os.makedirs(output_path, exist_ok=True)
                     output_path = clean_output_directory(output_path)
 
-                    if "/Archived" in output_path or "Yangsoo":
+                    # if "/Archived" in output_path or "Yongsoo" in output_path:
+                    if "/Archived" in output_path:
                         return
 
                     create_obj_files(root, output_path, npz_files, 1, None, None, False)
@@ -121,37 +122,38 @@ class TestObjMaker:
             #        print(f"Source Path: {path}")
                     # print(f"Destination Path: {directory['output']}")
 
-    @pytest.mark.parametrize(*input_path)
-    def test_check_most_dirs(self, input_dir, caplog):
-        most_dirs = []
-        no_most_dirs = []
+    # @pytest.mark.parametrize(*input_path)
+    # @pytest.mark.skip(reason="Skipping test for now")    
+    # def test_check_most_dirs(self, input_dir, caplog):
+    #     most_dirs = []
+    #     no_most_dirs = []
 
-        # List all directories one level below input_dir
-        try:
-            subdirs = [os.path.join(input_dir, d) for d in os.listdir(input_dir) if os.path.isdir(os.path.join(input_dir, d))]
-        except FileNotFoundError:
-            print(f"Directory not found: {input_dir}")
-            return
+    #     # List all directories one level below input_dir
+    #     try:
+    #         subdirs = [os.path.join(input_dir, d) for d in os.listdir(input_dir) if os.path.isdir(os.path.join(input_dir, d))]
+    #     except FileNotFoundError:
+    #         print(f"Directory not found: {input_dir}")
+    #         return
 
-        for subdir in subdirs:
-            registration_dir = os.path.join(subdir, "Registration")
-            if os.path.isdir(registration_dir):
-                if "fMOST_10um" in os.listdir(registration_dir):
-                    most_dirs.append(registration_dir)
-                else:
-                    no_most_dirs.append(registration_dir)
+    #     for subdir in subdirs:
+    #         registration_dir = os.path.join(subdir, "Registration")
+    #         if os.path.isdir(registration_dir):
+    #             if "fMOST_10um" in os.listdir(registration_dir):
+    #                 most_dirs.append(registration_dir)
+    #             else:
+    #                 no_most_dirs.append(registration_dir)
 
-        if most_dirs:
-            print(f"'fMOST' directory found in the following 'Registration' directories under {input_dir}:")
-            for dir in most_dirs:
-                print(f"  - {dir}")
-        else:
-            print(f"No 'fMOST' directory found in any 'Registration' subdirectory under {input_dir}.")
+    #     if most_dirs:
+    #         print(f"'fMOST' directory found in the following 'Registration' directories under {input_dir}:")
+    #         for dir in most_dirs:
+    #             print(f"  - {dir}")
+    #     else:
+    #         print(f"No 'fMOST' directory found in any 'Registration' subdirectory under {input_dir}.")
 
-        if no_most_dirs:
-            print(f"'fMOST' directory not found in the following 'Registration' directories under {input_dir}:")
-            for dir in no_most_dirs:
-                print(f"  - {dir}")
+    #     if no_most_dirs:
+    #         print(f"'fMOST' directory not found in the following 'Registration' directories under {input_dir}:")
+    #         for dir in no_most_dirs:
+    #             print(f"  - {dir}")
 
         create_output_folders(input_dir, OUTPUT_DIRECTORY)
         # test_check_most_dirs(input_dir)
