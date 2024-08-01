@@ -3,6 +3,7 @@ from obj_maker import create_obj_files
 import pytest
 import re
 import os
+import numpy as np
 
 # Update input(s) and output path below as needed
 
@@ -71,6 +72,24 @@ class TestObjMaker:
         if not os.path.exists(OUTPUT_DIRECTORY):
             os.makedirs(OUTPUT_DIRECTORY)
 
+        def contains_obj_files(directory):
+            # List all files in the given directory
+            files = os.listdir(directory)
+            
+            # Check if any file has the .obj extension
+            for file in files:
+                if file.endswith(".obj"):
+                    return True
+            return False
+
+        def find_npz_file_with_keyword(directory, keyword):
+            keyword_lower = keyword.lower()
+            for item in os.listdir(directory):
+                if item.lower().endswith('.npz') and keyword_lower in item.lower():
+                    return os.path.join(directory, item)
+            return None
+
+
         def create_output_folders(input_dir, output_dir):
             no_npzs_folders = []
             for root, dirs, files in os.walk(input_dir):
@@ -85,8 +104,18 @@ class TestObjMaker:
                     output_path = clean_output_directory(output_path)
 
                     # if "/Archived" in output_path or "Yongsoo" in output_path:
-                    if "/Archived" in output_path:
-                        return
+                    if "/Archived" in output_path or "fmost" not in output_path.lower():
+                        continue
+                    
+                    # TODO: Check if any file has the .obj extension so that we know they have been generated
+                    # print(f'{output_path} ........')
+                    # if os.path.exists(output_path):
+                    #     if contains_obj_files(output_path):
+                    #         # if "fmost" in output_path:
+                    #         print(f'{output_path} contains OBJ files.....')
+                    #         continue
+                    # else:
+                    #     print(f'{output_path} does not exist...')
 
                     create_obj_files(root, output_path, npz_files, 1, None, None, False)
 
@@ -104,8 +133,14 @@ class TestObjMaker:
 
                         assert os.path.exists(os.path.join(output_path, expected_output)), \
                             f"Expected output file {expected_output} not found for {input_file}."
-                        
-                    print(f"Successfull test for {output_path}") 
+
+                    root997_file_path = find_npz_file_with_keyword(root, '997')
+                    if root997_file_path:
+                        print(f"Found file: {root997_file_path}")
+                        npz997 = np.load(root997_file_path,allow_pickle=True)
+                        print(f"Successfull test for INPUT:{root}  OUTPUT:{output_path} and OFFSET:{npz997['origin']}")
+                    else:
+                        print(f"Successfull test for INPUT:{root}  OUTPUT:{output_path} and OFFSET:No 997.npz")
 
                 else:
                     if "registration/" in relative_path.lower():
