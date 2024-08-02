@@ -138,9 +138,10 @@ class TestObjMaker:
                     if root997_file_path:
                         print(f"Found file: {root997_file_path}")
                         npz997 = np.load(root997_file_path,allow_pickle=True)
-                        print(f"Successfull test for INPUT:{root}  OUTPUT:{output_path} and OFFSET:{npz997['origin']}")
+                        print(f"Successfull test for INPUT:{root}  OUTPUT:{output_path} and OFFSET:{npz997['origin']}\n\n\n")
                     else:
-                        print(f"Successfull test for INPUT:{root}  OUTPUT:{output_path} and OFFSET:No 997.npz")
+                        print(f"Successfull test for INPUT:{root}  OUTPUT:{output_path} and OFFSET:No 997.npz\n\n\n")
+                        
 
                 else:
                     if "registration/" in relative_path.lower():
