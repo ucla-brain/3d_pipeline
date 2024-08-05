@@ -4,6 +4,7 @@ import pytest
 import re
 import os
 import numpy as np
+import shutil
 
 # Update input(s) and output path below as needed
 
@@ -14,8 +15,24 @@ input_path = ('input_dir', [
 
 OUTPUT_DIRECTORY = "/qnap2/output_objs/"
 
+# Folders to skip obj_maker processing entirely
+SKIP_DATA = [
+    'archive',
+    'yongsoo',
+    'yangsoo',
+    'ccf'
+]
+
 
 class TestObjMaker:
+
+    @pytest.fixture
+    def skip_if_exists(self, request):
+        return request.config.getoption("--no_overwrite")
+    
+    @pytest.fixture
+    def is_verbose(self, request):
+        return request.config.getoption("--verbose_log")    
 
     @pytest.fixture(scope="function")
     def extract_number_from_filename(self):
@@ -27,7 +44,7 @@ class TestObjMaker:
         return extract
 
     @pytest.fixture(scope="function")
-    def count_files(request, extract_number_from_filename):
+    def count_files(self, extract_number_from_filename):
         unique_numbers = set()
 
         def cleanup_unique_numbers():
@@ -58,29 +75,19 @@ class TestObjMaker:
                     if os.path.isfile(item_path):
                         os.remove(item_path)
                     elif os.path.isdir(item_path):
-                        os.rmdir(item_path)
+                        shutil.rmtree(item_path)
             return output_path
         return clean_contents
 
 
     @pytest.mark.parametrize(*input_path)
-    def test_create_obj_files(self, input_dir, extract_number_from_filename, count_files,  clean_output_directory):
+    def test_create_obj_files(self, input_dir, extract_number_from_filename, count_files, clean_output_directory, skip_if_exists, is_verbose):
 
         if not os.path.exists(input_dir):
             assert False, f"Input directory does not exist, skipping test. Invalid directory: {input_dir}"
 
         if not os.path.exists(OUTPUT_DIRECTORY):
             os.makedirs(OUTPUT_DIRECTORY)
-
-        def contains_obj_files(directory):
-            # List all files in the given directory
-            files = os.listdir(directory)
-            
-            # Check if any file has the .obj extension
-            for file in files:
-                if file.endswith(".obj"):
-                    return True
-            return False
 
         def find_npz_file_with_keyword(directory, keyword):
             keyword_lower = keyword.lower()
@@ -89,60 +96,62 @@ class TestObjMaker:
                     return os.path.join(directory, item)
             return None
 
-
-        def create_output_folders(input_dir, output_dir):
+        def create_output_folders(input_dir, output_dir, skip_if_exists):
+            print('')
             no_npzs_folders = []
+            failures = []
             for root, dirs, files in os.walk(input_dir):
                 npz_files = [f for f in files if f.endswith('.npz') and re.search(r'\d', f) and 'structure' in f.lower()]
                 relative_path = os.path.relpath(root, input_dir)
-
                 output_path = os.path.join(output_dir, relative_path)
 
                 if npz_files:
+                    try:
+                        if any(folder in output_path.lower() for folder in SKIP_DATA):
+                            if is_verbose:
+                                print(f'Skipping to process: {root}')
+                            continue
 
-                    os.makedirs(output_path, exist_ok=True)
-                    output_path = clean_output_directory(output_path)
+                        if os.path.exists(output_path) and os.path.isfile(os.path.join(output_path, "997.obj")):
+                            if is_verbose:
+                                print(f'OBJ files exist for {output_path}....')
+                            if skip_if_exists:
+                                if is_verbose:
+                                    print(f'Skipping {output_path}...')
+                                continue
 
-                    # if "/Archived" in output_path or "Yongsoo" in output_path:
-                    if "/Archived" in output_path or "fmost" not in output_path.lower():
-                        continue
-                    
-                    # TODO: Check if any file has the .obj extension so that we know they have been generated
-                    # print(f'{output_path} ........')
-                    # if os.path.exists(output_path):
-                    #     if contains_obj_files(output_path):
-                    #         # if "fmost" in output_path:
-                    #         print(f'{output_path} contains OBJ files.....')
-                    #         continue
-                    # else:
-                    #     print(f'{output_path} does not exist...')
+                        os.makedirs(output_path, exist_ok=True)
+                        output_path = clean_output_directory(output_path)
+                        create_obj_files(root, output_path, npz_files, 1, None, None, False)
 
-                    create_obj_files(root, output_path, npz_files, 1, None, None, False)
+                        npz_count = count_files(root, '.npz')
+                        obj_count = count_files(output_path, '.obj')
 
-                    npz_count = count_files(root, '.npz')
-                    obj_count = count_files(output_path, '.obj')
+                        if obj_count < npz_count:
+                            failures.append(f"Lower obj count generated: obj(s): {obj_count}, npz(s): {npz_count}")
+                        if npz_count < obj_count:
+                            failures.append(f"Lower npz count error: {npz_count}, obj(s): {obj_count}")
+                        if npz_count == 0:
+                            failures.append("Empty input file used.")
 
-                    assert obj_count >= npz_count, f"Lower obj count generated: obj(s): {obj_count}, npz(s): {npz_count}"
-                    assert npz_count >= obj_count, f"Lower npz count error: {npz_count}, obj(s): {obj_count}"
-                    assert npz_count > 0, "Empty input file used."
+                        for input_file in npz_files:
+                            num = extract_number_from_filename(input_file)
+                            expected_output = f"{num}.obj"
 
+                            if not os.path.exists(os.path.join(output_path, expected_output)):
+                                failures.append(f"Expected output file {expected_output} not found for {input_file}.")
 
-                    for input_file in npz_files:
-                        num = extract_number_from_filename(input_file)
-                        expected_output = f"{num}.obj"
+                        root997_file_path = find_npz_file_with_keyword(root, '997')
+                        if root997_file_path:
+                            print(f"Found file: {root997_file_path}")
+                            npz997 = np.load(root997_file_path, allow_pickle=True)
+                            print(f"Successful test for INPUT: {root}  OUTPUT: {output_path} and OFFSET: {npz997['origin']}\n\n\n")
+                        else:
+                            print(f"Successful test for INPUT: {root}  OUTPUT: {output_path} and OFFSET: No 997.npz\n\n\n")
 
-                        assert os.path.exists(os.path.join(output_path, expected_output)), \
-                            f"Expected output file {expected_output} not found for {input_file}."
-
-                    root997_file_path = find_npz_file_with_keyword(root, '997')
-                    if root997_file_path:
-                        print(f"Found file: {root997_file_path}")
-                        npz997 = np.load(root997_file_path,allow_pickle=True)
-                        print(f"Successfull test for INPUT:{root}  OUTPUT:{output_path} and OFFSET:{npz997['origin']}\n\n\n")
-                    else:
-                        print(f"Successfull test for INPUT:{root}  OUTPUT:{output_path} and OFFSET:No 997.npz\n\n\n")
-                        
-
+                    except Exception as e:
+                        failures.append(str(e))
+                        print(f'Failure: {e}')
                 else:
                     if "registration/" in relative_path.lower():
                         empty_dirs = {
@@ -150,6 +159,10 @@ class TestObjMaker:
                             "output": output_path
                         }
                         no_npzs_folders.append(empty_dirs)
+
+            if failures:
+                assert False, "\n".join(failures)
+
 
             #print(f"No npz files found for ....................")        
             #for directory in no_npzs_folders:
@@ -190,10 +203,8 @@ class TestObjMaker:
     #         print(f"'fMOST' directory not found in the following 'Registration' directories under {input_dir}:")
     #         for dir in no_most_dirs:
     #             print(f"  - {dir}")
-
-        create_output_folders(input_dir, OUTPUT_DIRECTORY)
+        create_output_folders(input_dir, OUTPUT_DIRECTORY, skip_if_exists)
         # test_check_most_dirs(input_dir)
 
     # Run pytest with the -s flag to see the output on the console
     # pytest -s
-
