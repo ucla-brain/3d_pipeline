@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # coding: utf-8
 
+# Version: 2.0
 
 # meeting notes on april 24, 2024
 # Luis pasted his current file
@@ -47,7 +48,6 @@ from skimage.measure import marching_cubes
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 import tifffile # needed to load the fmost atlas labels
 import torch # so we can specify to use the torch.float32 data type
-import sys
 
 import emlddmm
 
@@ -700,44 +700,16 @@ def generate_npz_mesh_file(l, verts, faces, normals, values, ontology, origin, o
     struct_des_fname = os.path.join(outpath, f'structure_{l:012d}_surface_{clean_id}.npz')
     np.savez(struct_des_fname, verts=verts,faces=faces,normals=normals,values=values,readme=readme, origin=origin)
 
-def register():
-    parser = argparse.ArgumentParser(description="Register images in atlas")
-
-    parser.add_argument("target_name",type=pathlib.Path,help="Name of the file to be registered")
-    parser.add_argument("output_prefix",type=pathlib.Path,help="Location of the output file(s)")
-    parser.add_argument("savename",type=pathlib.Path,help="Name of file once it is saved")
-    parser.add_argument("atlas_names",type=pathlib.Path,help="Location of the atlas images")
-    parser.add_argument("-v","--ventricle",type=pathlib.Path,default=None,help="Location of the ventricle opening npz file")
-    parser.add_argument("-on", "--onto_name", default=None, help="Location of atlas ontology")
-    parser.add_argument("-d","--device",default='cuda:0',help="Device used for pytorch")
-    parser.add_argument("-ao","--atlas_orientation",default='PIR',
-                        help="3 letters, one for each image axis: R/L, A/P, S/I")
-    parser.add_argument("-to","--target_orientation",default='SAL',
-                        help="3 letters, one for each image axis: R/L, A/P, S/I")
-    parser.add_argument("-a","--A0",type=str,default=None,help="Affine transformation (Squeezed to 16x1 + Sep by ',')")
-    parser.add_argument("-j","--jpg", action="store_true", help="Generate 3d jpegs for each structure")
-    parser.add_argument("-pp","--preprocessed", action="store_true", help="Specifies if image has been previously preprocessed")
-
-    args = parser.parse_args()
-
-    target_name   = args.target_name
-    output_prefix = args.output_prefix
-    atlas_name    = args.atlas_names
-    ventricle_map = args.ventricle
-    savename      = args.savename
-    ontology_name = args.onto_name
-    jpg           = args.jpg
-    device        = args.device
-    A0            = args.A0
-    atlas_orient  = args.atlas_orientation
-    target_orient = args.target_orientation
-    preprocessed  = args.preprocessed
-
+def register(target_name, output_prefix, atlas_name, savename, ventricle_map=None,
+             ontology_name=None, jpg=False, device='cpu', A0=None, atlas_orient="PIR",
+             target_orient="SAL", preprocessed=False):
 
     # Validations
     assert os.path.isfile(target_name), f"Downsample file was not found: {target_name}"
     assert os.path.isfile(atlas_name), f"Atlas image file was not found: {atlas_name}"
     assert os.path.isfile(ontology_name), f"Atlas ontology file was not found: {ontology_name}"
+    if ventricle_map is not None:
+        assert os.path.isfile(ventricle_map), f"Ventricle file was not found: {ventricle_map}"
     if not os.path.exists(pathlib.Path(output_prefix)):
         os.mkdir(output_prefix)
     assert os.path.isdir(output_prefix), f"Output directory does not exist: {output_prefix}"
@@ -1027,4 +999,37 @@ def register():
     print(f"Registration process complete.  Output folder {output_prefix}")
 
 if __name__ == "__main__":
-    register()
+    parser = argparse.ArgumentParser(description="Register images in atlas")
+
+    parser.add_argument("target_name",type=pathlib.Path,help="Name of the file to be registered")
+    parser.add_argument("output_prefix",type=pathlib.Path,help="Location of the output file(s)")
+    parser.add_argument("savename",type=pathlib.Path,help="Name of file once it is saved")
+    parser.add_argument("atlas_names",type=pathlib.Path,help="Location of the atlas images")
+    parser.add_argument("-v","--ventricle",type=pathlib.Path,default=None,help="Location of the ventricle opening npz file")
+    parser.add_argument("-on", "--onto_name", default=None, help="Location of atlas ontology")
+    parser.add_argument("-d","--device",default='cuda:0',help="Device used for pytorch")
+    parser.add_argument("-ao","--atlas_orientation",default='PIR',
+                        help="3 letters, one for each image axis: R/L, A/P, S/I")
+    parser.add_argument("-to","--target_orientation",default='SAL',
+                        help="3 letters, one for each image axis: R/L, A/P, S/I")
+    parser.add_argument("-a","--A0",type=str,default=None,help="Affine transformation (Squeezed to 16x1 + Sep by ',')")
+    parser.add_argument("-j","--jpg", action="store_true", help="Generate 3d jpegs for each structure")
+    parser.add_argument("-pp","--preprocessed", action="store_true", help="Specifies if image has been previously preprocessed")
+
+    args = parser.parse_args()
+
+    target_name   = args.target_name
+    output_prefix = args.output_prefix
+    atlas_name    = args.atlas_names
+    ventricle_map = args.ventricle
+    savename      = args.savename
+    ontology_name = args.onto_name
+    jpg           = args.jpg
+    device        = args.device
+    A0            = args.A0
+    atlas_orient  = args.atlas_orientation
+    target_orient = args.target_orientation
+    preprocessed  = args.preprocessed
+    register(target_name=target_name, output_prefix=output_prefix, atlas_name=atlas_name, savename=savename,
+             ventricle_map=ventricle_map, ontology_name=ontology_name, jpg=jpg, device=device, A0=A0,
+             atlas_orient=atlas_orient, target_orient=target_orient, preprocessed=preprocessed)
