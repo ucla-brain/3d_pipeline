@@ -49,7 +49,7 @@ from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 import tifffile # needed to load the fmost atlas labels
 import torch # so we can specify to use the torch.float32 data type
 
-import emlddmm
+from . import emlddmm
 
 FIG_OPTIONS = {'dpi': 300, 'format': 'jpg'}
 
